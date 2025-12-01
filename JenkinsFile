@@ -2,24 +2,28 @@ pipeline {
     agent any
 
     stages {
-
+        
+        stage('Install Requirements') {
+            steps {
+                sh 'python3 -m pip install --user -r requirements.txt'
+            }
+        }
 
         stage('Run Tests') {
             steps {
-                sh 'pytest'
+                sh 'python3 -m pytest'
             }
         }
 
         stage('Build') {
             steps {
-                echo "Building application..."
+                echo "Building the application..."
             }
         }
 
         stage('Deploy') {
             steps {
-                echo "Deploying to server..."
-                // Example: sh 'scp -r . user@server:/app/'
+                echo "Deploying the application..."
             }
         }
     }
