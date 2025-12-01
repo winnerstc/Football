@@ -1,0 +1,36 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Clone Code') {
+            steps {
+                git branch: 'Development-Branch', url: 'https://github.com/winnerstc/Football.git'
+            }
+        }
+
+        stage('Install Requirements') {
+            steps {
+                sh 'pip install -r requirements.txt'
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                sh 'pytest'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                echo "Building application..."
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo "Deploying to server..."
+                // Example: sh 'scp -r . user@server:/app/'
+            }
+        }
+    }
+}
