@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, regexp_replace, split, trim, when, size
 from pyspark.sql.types import IntegerType, FloatType
@@ -8,7 +6,7 @@ spark = SparkSession.builder \
     .appName("NFLDefensiveIncrementalToSilver") \
     .enableHiveSupport() \
     .getOrCreate()
-
+spark.sql("SHOW DATABASES").show(truncate=False)
 spark.sql("USE joepostgres")
 
 bronze_table = "nfl_defensive"
@@ -17,21 +15,21 @@ silver_path = "hdfs:///tmp/DE011025/Joe/silver/nfl_defensive_output"
 # Load bronze
 bronze_df = spark.sql("SELECT * FROM " + bronze_table)
 bronze_count = bronze_df.count()
-
 # Load silver if exists
 try:
-    silver_df = spark.read.parquet(silver_path)
-    silver_count = silver_df.count()
+    #silver_df = spark.read.parquet(silver_path)
+    bronze_inc_df = spark.sql("SELECT * FROM nfl_defensive_inc")
+    inc_count = silver_df.count()
 except Exception:
-    silver_count = 0
+    inc_count = 0
 
 print("[DEFENSIVE] bronze_count=" + str(bronze_count)
-      + ", silver_count=" + str(silver_count))
+      + ", bronze_inc_count=" + str(inc_count))
 
-if bronze_count > silver_count:
+if bronze_count < inc_count:
     print("[DEFENSIVE] New data detected. Rebuilding silver...")
 
-    df = bronze_df
+    df = bronze_inc_df
 
     # Trim string columns
     for c, t in df.dtypes:
