@@ -40,12 +40,11 @@ sqoop import --connect jdbc:postgresql://18.134.163.221:5432/mhanna_db --usernam
 
 --target-dir: HDFS location for raw data.
 
-**Original load** (from load command): /tmp/DE011025/marc/sqoop/career_stats_kick_return
+**HDFS File path**: `/tmp/DE011025/marc/sqoop/career_stats_kick_return`
 
 ## Python Spark Script for ETL
-5) 
-    1. Grab CSV data from temporary raw location and Convert raw data to a Pyspark Dataframe.
-    2. **raw-> Bronze:** Copy from temporary raw location to **Bronze location (CSV):** _hdfs:///tmp/de011025/marc/raw/staging_career_stats_kick_return_
+5) 1. Grab CSV data from temporary raw location and Convert raw data to a Pyspark Dataframe.
+   2. **raw-> Bronze:** Copy from temporary raw location to **Bronze location (CSV):** _hdfs:///tmp/de011025/marc/raw/staging_career_stats_kick_return_
 6) Data Cleaning / **Bronze -> Silver Transformation**:
 
     1. **Clean Data:** Remove duplicates, Standardize string columns (trim, uppercase). Replace missing numeric values with 0.
@@ -56,6 +55,68 @@ sqoop import --connect jdbc:postgresql://18.134.163.221:5432/mhanna_db --usernam
    1. Perform aggregation transformations on the cleaned kick_return_stats (fact table dataframe), and player, team and year
    (dimension table dataframes) 
    2. write to **Gold location (Parquet):** _/tmp/DE011025/marc/Gold/gold_fact_kick_return_stats_
+
+# Spark Submit Details
+This section documents exactly how I used `spark-submit` the PySpark ETL script was submitted on the cluster.
+
+The ETL SCRIPT at this file location:
+`/home/Consultants/Marc_Individual_Task_ETL_Project/marc_ETL_task.py`
+
+ran to produce an outputs directory `outputs` with test results confirming that the bronze and silver folders have the same schemas (rows and columns), silver to gold having the same number of data rows, and showing a 15 row sample of the joined fact and dimension tables total data.
+## yarn local
+To **produce unit test results**, I used the `spark-submit` command:
+
+`spark-submit marc_ETL_task.py 1`
+
+along with SparkSession set to use all cores on my local machine:
+
+```
+spark = (
+    SparkSession.builder
+    .appName("KickReturnsLocal")
+    .master("local[*]")
+    .getOrCreate()
+)
+```
+## yarn cluster
+I also ran Spark in yarn-client mode just for practice:
+```
+spark-submit \
+  --master yarn \
+  --deploy-mode cluster \
+  --name FootballKickReturnsApp \
+  --num-executors 4 \
+  --executor-memory 4G \
+  --executor-cores 2 \
+  /home/Consultants/Marc_Individual_Task_ETL_Project/marc_ETL_task.py
+```
+with SparkSession pointed to HDFS:
+```
+spark = (
+    SparkSession.builder
+    .appName("KickReturnsCluster")
+    .config("hive.metastore.uris", "thrift://ip-172-31-8-235.eu-west-2.compute.internal:9083")
+    .config("spark.hadoop.fs.defaultFS", "hdfs://ip-172-31-3-80.eu-west-2.compute.internal:8020")
+    .config("spark.hadoop.yarn.resourcemanager.address", "ip-172-31-3-80.eu-west-2.compute.internal:8032")
+    .enableHiveSupport()
+    .getOrCreate()
+)
+```
+
+
+**Explanation of Key Parameters:**
+
+`--master yarn` → run on Hadoop YARN
+
+`--deploy-mode cluster` → driver runs on a YARN node
+
+`--num-executors 4` → parallel workload distribution
+
+`--executor-memory 4G` → memory per executor
+
+`--executor-cores 2` → number of CPU cores per executor
+
+`/home/Consultants/Marc_Individual_Task_ETL_Project/marc_ETL_task.py` → Python ETL script path
 
 ## Star Schema Design
 ### Dimension Tables:
@@ -104,4 +165,5 @@ Attributes: player_id, first_name, last_name, position, career_span, rookie_flag
         dim_player      dim_team       dim_year
            |                |              |
            ---------------------------------
+                            |
                         fact_kick_return_stats
