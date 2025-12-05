@@ -90,8 +90,12 @@ df = df.withColumn("total_tackles", col("total_tackles").cast(FloatType()))
 # ------------------------------------------------
 # Remove rows where total_tackles < 100
 # ------------------------------------------------
-df = df.filter(col("total_tackles") >= 100)
-
+#df = df.filter(col("total_tackles") >= 100)
+df = df.filter(
+    (col("total_tackles") >= 100) |
+    (col("sacks") > 10) |
+    (col("ints") > 5)
+)
 # ------------------------------------------------
 # Remove rows before year 1970
 # ------------------------------------------------

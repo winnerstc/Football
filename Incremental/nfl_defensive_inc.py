@@ -77,7 +77,11 @@ if bronze_count < inc_count:
     df = df.withColumn("total_tackles", col("total_tackles").cast(FloatType()))
 
     # Filter rows
-    df = df.filter(col("total_tackles") >= 100)
+    df = df.filter(
+        (col("total_tackles") >= 100) |
+        (col("sacks") > 10) |
+        (col("ints") > 5)
+    )
 
     # Drop columns
     df = df.drop(
