@@ -1,80 +1,156 @@
-Football
-This repository contains code and data related to NFL (National Football League) statistics and analysis. The goal of this project is to provide a comprehensive set of tools and data to analyze various aspects of football performance.
-Table of Contents
-Project Overview
-Directory Structure
-Getting Started
-Usage
-Contributing
-License
-Project Overview
-This project aims to:
-Collect and preprocess NFL statistics data.
-Implement data transformation scripts for different types of football statistics (e.g., defensive, kicking, passing, receiving, rushing).
-Load transformed data into a PostgreSQL database for further analysis.
-Provide unit tests to ensure the correctness of the transformation scripts.
-Directory Structure
+# Football Data Engineering Pipeline
+
+## Overview
+This project implements an end-to-end data engineering pipeline for NFL football statistics. It supports full and incremental data loads, structured transformations, automated testing, CI/CD with Jenkins, and loading curated datasets into PostgreSQL for downstream analytics and reporting.
+
+The pipeline processes multiple statistical domains including passing, rushing, receiving, defensive, kicking, player, and return data, following production-style data engineering best practices.
+
+---
+
+## Architecture Summary
+Source CSV Files → PySpark Transformations → Validation & Testing → PostgreSQL
+
+- Source: NFL statistics CSV files  
+- Processing Engine: PySpark  
+- Load Strategy: Full Load and Incremental Load  
+- Destination: PostgreSQL  
+- Automation: Jenkins CI/CD  
+- Quality Control: Unit Tests  
+
+---
+
+## Repository Structure
 
 Football/
-├── .idea/
-├── CSV_Files/
-├── Incremental/
-├── Transforms/
-├── load_into_postgres/
-├── unit tests/
-├── JenkinsFile
-├── README.md
-├── common_utils.py
-├── requirements.txt
-├── sqoop commands.txt
-.idea/: Configuration files for the IDE.
-CSV_Files/: Contains raw CSV files used for data processing.
-Incremental/: Scripts for incremental data loading.
-Transforms/: Scripts for transforming raw data into a format suitable for analysis.
-load_into_postgres/: Scripts for loading data into a PostgreSQL database.
-unit tests/: Unit tests for the transformation scripts.
-JenkinsFile: Configuration file for Jenkins CI/CD pipeline.
-README.md: This file.
-common_utils.py: Common utility functions used across the project.
-requirements.txt: Python dependencies required to run the project.
-sqoop commands.txt: Sqoop commands for data ingestion.
-Getting Started
-To get started with this project, follow these steps:
-Clone the repository:
-bash
+├── CSV_Files/  
+├── Incremental/  
+│   ├── nfl_defensive_inc.py  
+│   ├── nfl_kicking_inc.py  
+│   ├── nfl_passing_inc.py  
+│   ├── nfl_players_inc.py  
+│   ├── nfl_receiving_inc.py  
+│   ├── nfl_returns_inc.py  
+│   └── nfl_rushing_inc.py  
+├── Transforms/  
+│   ├── transform_defensive.py  
+│   ├── transform_kicking.py  
+│   ├── transform_passing.py  
+│   ├── transform_players.py  
+│   ├── transform_receiving.py  
+│   ├── transform_return.py  
+│   └── transform_rushing.py  
+├── load_into_postgres/  
+│   ├── loadintopostgres.py  
+│   ├── Basic_Stats.csv  
+│   ├── Career_Stats_Defensive.csv  
+│   ├── Career_Stats_Field_Goal_Kickers.csv  
+│   ├── Career_Stats_Passing.csv  
+│   ├── Career_Stats_Receiving.csv  
+│   └── Career_Stats_Rushing.csv  
+├── unit tests/  
+│   ├── test_all_7_transforms.py  
+│   └── full_test_nfl_21_tests.py  
+├── JenkinsFile  
+├── common_utils.py  
+├── requirements.txt  
+├── sqoop commands.txt  
+└── README.md  
 
-git clone https://github.com/winnerstc/Football.git
-cd Football
-Install dependencies:
-bash
-Copy
-pip install -r requirements.txt
-Set up the PostgreSQL database:
-Create a PostgreSQL database.
-Update the database connection settings in the scripts under load_into_postgres/.
-Run the transformation scripts:
-Navigate to the Transforms/ directory and run the transformation scripts as needed.
-For example:
+---
 
-python transform_defensive.py
-Load data into PostgreSQL:
-Navigate to the load_into_postgres/ directory and run the data loading scripts.
-For example:
+## Key Features
+- Domain-based NFL data transformations  
+- Incremental and full load processing  
+- Defensive filtering and data validation  
+- PostgreSQL loading layer  
+- Automated CI/CD using Jenkins  
+- Comprehensive unit testing  
+- Modular and reusable code design  
 
-python loadintopostgres.py
-Usage
-Data Transformation
-The transformation scripts in the Transforms/ directory are designed to process raw data from the CSV_Files/ directory and generate transformed data suitable for analysis. Each script corresponds to a specific type of football statistic (e.g., defensive, kicking, passing).
-Data Loading
-The scripts in the load_into_postgres/ directory are used to load the transformed data into a PostgreSQL database. These scripts assume that the database connection settings are properly configured.
-Unit Tests
-Unit tests are provided in the unit tests/ directory to ensure the correctness of the transformation scripts. To run the unit tests, navigate to the unit tests/ directory and execute the test scripts.
-Contributing
-Contributions to this project are welcome! To contribute, follow these steps:
-Fork the repository.
-Create a new branch for your feature or bug fix.
-Make your changes and commit them.
-Push your changes to your fork.
-Open a pull request to merge your changes into the main repository.
-License
-This project is licensed under the MIT License.
+---
+
+## Technologies Used
+- Python  
+- PySpark  
+- PostgreSQL  
+- Jenkins  
+- Git & GitHub  
+
+---
+
+## Setup Instructions
+
+### Clone the Repository
+git clone https://github.com/winnerstc/Football.git  
+cd Football  
+git checkout Development-Branch  
+
+### Install Dependencies
+pip install -r requirements.txt  
+
+---
+
+## Running the Pipeline
+
+### Run Full Load Transformations
+spark-submit Transforms/transform_passing.py  
+spark-submit Transforms/transform_rushing.py  
+
+### Run Incremental Loads
+spark-submit Incremental/nfl_passing_inc.py <last_processed_timestamp>  
+
+---
+
+## Load Data into PostgreSQL
+Update database credentials inside load_into_postgres/loadintopostgres.py, then run:
+python load_into_postgres/loadintopostgres.py  
+
+---
+
+## Testing
+Run all unit tests:
+pytest unit\ tests/  
+
+Tests validate:
+- Schema correctness  
+- Data filtering logic  
+- Incremental boundaries  
+- Transformation completeness  
+
+---
+
+## CI/CD Pipeline
+The JenkinsFile automates:
+- Dependency installation  
+- Execution of full and incremental jobs  
+- Test execution  
+- Error handling and job failure reporting  
+
+This enables hands-off, repeatable pipeline execution in a production-style environment.
+
+---
+
+## Author
+Sanket Patel / sanketpateltechconsulting-droid  
+
+Primary contributions include incremental load logic, defensive data filtering, transformation correctness, and automated testing enhancements.
+
+---
+
+## Use Cases
+- Sports analytics platforms  
+- Data engineering portfolio project  
+- Interview-ready ETL pipeline demonstration  
+- Data warehousing practice  
+
+---
+
+## Future Enhancements
+- Workflow orchestration with Apache Airflow  
+- Cloud storage integration (S3 / GCS)  
+- Partitioned PostgreSQL tables  
+- Data quality monitoring dashboards  
+
+---
+
+This project demonstrates real-world data engineering workflows using production-style patterns.
