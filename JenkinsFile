@@ -22,23 +22,24 @@ pipeline {
         stage('Run Sqoop Imports') {
             steps {
                 sh """
-                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_players --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/incremental/nfl_players
+                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_players --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/incremental/nfl_players --delete-target-dir
 
-                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_rushing --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/incremental/nfl_rushing
+                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_rushing --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/incremental/nfl_rushing --delete-target-dir
 
-                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_receiving --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/incremental/nfl_receiving
 
-                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_defensive --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/incremental/nfl_defensive
+                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_receiving --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/incremental/nfl_receiving --delete-target-dir
+                
+                
+                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_defensive --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/incremental/nfl_defensive --delete-target-dir
 
-                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_kicking --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/incremental/nfl_kicking
 
-                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_passing --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/incremental/nfl_passing
-
-                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_returns --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/incremental/nfl_returns
-
-                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table college_teams --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/static/college_teams
-
-                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_teams --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/static/nfl_teams
+                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_kicking --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/incremental/nfl_kicking --delete-target-dir
+                
+                
+                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_passing --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/incremental/nfl_passing --delete-target-dir
+                
+                
+                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_returns --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/incremental/nfl_returns --delete-target-dir
                 """
             }
         }
