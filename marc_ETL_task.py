@@ -115,12 +115,12 @@ else:
         spark.sql(ddl)
 
 
-    bronze_table_name = "marc_bronze_kick_returns"
+    marc_bronze_kick_returns = "marc_bronze_kick_returns"
     # UPDATE Bronze Table
     recreate_table(
-        bronze_table_name,
+        marc_bronze_kick_returns,
         f"""
-        CREATE EXTERNAL TABLE IF NOT EXISTS {bronze_table_name} (
+        CREATE EXTERNAL TABLE IF NOT EXISTS {marc_bronze_kick_returns} (
             player_id STRING,
             name STRING,
             position STRING,
@@ -145,12 +145,12 @@ else:
         """
     )
 
-    silver_table_name = "marc_silver_kick_returns"
+    marc_silver_kick_returns = "marc_silver_kick_returns"
     # UPDATE Silver Table
     recreate_table(
-        silver_table_name,
+        marc_silver_kick_returns,
         f"""
-        CREATE EXTERNAL TABLE IF NOT EXISTS {silver_table_name} (
+        CREATE EXTERNAL TABLE IF NOT EXISTS {marc_silver_kick_returns} (
             team_std STRING,
             fair_catches_clean INT,
             returns_clean INT,
@@ -190,11 +190,11 @@ else:
     gold_dim_year_path = f"{gold_path_base}/dim_year/"
 
     # FACT TABLE
-    gold_fact_table_name = "marc_gold_kick_return"
+    marc_gold_kick_returns = "marc_gold_kick_returns"
     recreate_table(
-        gold_fact_table_name,
+        marc_gold_kick_returns,
         f"""
-        CREATE EXTERNAL TABLE IF NOT EXISTS gold_fact_table_name (
+        CREATE EXTERNAL TABLE IF NOT EXISTS marc_gold_kick_returns (
             player_key INT,
             team_key INT,
             year_key INT,
@@ -217,12 +217,12 @@ else:
         """
     )
 
-    gold_dim_player_table_name = "marc_gold_dim_player"
+    marc_gold_dim_player = "marc_gold_dim_player"
     # DIM PLAYER TABLE
     recreate_table(
-        gold_dim_player_table_name,
+        marc_gold_dim_player,
         f"""
-        CREATE EXTERNAL TABLE IF NOT EXISTS {gold_dim_player_table_name} (
+        CREATE EXTERNAL TABLE IF NOT EXISTS {marc_gold_dim_player} (
             player_key INT,
             player_id STRING,
             name STRING,
@@ -241,12 +241,12 @@ else:
         """
     )
 
-    gold_dim_team_table_name = "gold_dim_player_table_name"
+    marc_gold_dim_team = "marc_gold_dim_team"
     # DIM TEAM TABLE
     recreate_table(
-        gold_dim_team_table_name,
+        marc_gold_dim_team,
         f"""
-        CREATE EXTERNAL TABLE IF NOT EXISTS {gold_dim_team_table_name} (
+        CREATE EXTERNAL TABLE IF NOT EXISTS {marc_gold_dim_team} (
             team_key INT,
             team_std STRING
         )
@@ -255,12 +255,12 @@ else:
         """
     )
 
-    gold_dim_year_name = "marc_gold_dim_year"
+    marc_gold_dim_year = "marc_gold_dim_year"
     # DIM YEAR TABLE
     recreate_table(
-        {gold_dim_year_name},
+        {marc_gold_dim_year},
         f"""
-        CREATE EXTERNAL TABLE IF NOT EXISTS {gold_dim_year_name} (
+        CREATE EXTERNAL TABLE IF NOT EXISTS {marc_gold_dim_year} (
             year_key INT,
             year INT
         )
@@ -339,12 +339,28 @@ fact_df = joined.select(
  .withColumn("weighted_return_score", col("yards_returned") * col("returns_for_tds")) \
  .withColumn("cumulative_yards", _sum("yards_returned").over(Window.partitionBy("player_key").orderBy("year_key").rowsBetween(Window.unboundedPreceding, 0)))
 
+# Write gold tables to HDFS with format of choice (csv or parquet)
+def write_table(df, path, format_choice):
+    if format_choice == "csv":
+        df.write.mode("overwrite").option("header", True).csv(path)
+    elif format_choice == "parquet":
+        df.write.mode("overwrite").parquet(path)
+    else:
+        raise ValueError("Invalid format_choice: use 0 for CSV, 1 for Parquet")
+
 # Write Gold tables only if not LOCAL
 if not LOCAL:
-    fact_df.write.mode("overwrite")
-    dim_player.write.mode("overwrite")
-    dim_team.write.mode("overwrite")
-    dim_year.write.mode("overwrite")
+    GOLD_WRITE = int(sys.argv[2].strip())
+    # Gold output format choices: 0 for CSV, 1 for Parquet
+    if GOLD_WRITE == 1:
+        output_format = "parquet"
+    else:
+        output_format = "csv"
+
+        write_table(fact_df, gold_fact_path, output_format)
+        write_table(dim_player, gold_dim_player_path, output_format)
+        write_table(dim_team, gold_dim_team_path, output_format)
+        write_table(dim_year, gold_dim_year_name, output_format)
 
 # ETL Validation Tests
 script_dir = os.path.dirname(os.path.abspath(__file__))
