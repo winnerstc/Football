@@ -167,3 +167,50 @@ Attributes: player_id, first_name, last_name, position, career_span, rookie_flag
            ---------------------------------
                             |
                         fact_kick_return_stats
+
+## Unit Testing
+
+Location: ./unit_tests/test_kick_returns_hive_tables.py
+
+How to run tests locally:
+
+`pytest ./unit_tests/test_kick_returns_hive_tables.py -v --junitxml=./outputs/test_results.xml
+`
+
+Uses PySpark fixtures for Hive tables and SparkSession.
+
+### Validates:
+
+* Schema consistency between Bronze → Silver → Gold.
+* Row counts across tables.
+* Basic data integrity and derived metrics.
+
+Logs results to ./outputs/ for review.
+
+GitHub Actions / CI Integration:
+
+**Tests are fully compatible with Jenkins/GitHub Actions.**
+
+Example workflow snippet:
+jobs:
+  etl-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.10
+      - name: Install dependencies
+        run: pip install pyspark pytest
+      - name: Run tests
+        run: pytest ./unit_tests/test_kick_returns_hive_tables.py --junitxml=results.xml
+
+## Major Improvements / Refactoring Notes (tasks done and can be improved in the same way)
+* Reorganized ETL code into reusable functions: Table creation, cleaning, Silver → Gold transformations.
+* Logging and output functions for portability.
+* Improved testability / portability: SparkSession setup parameterized for local vs cluster mode.
+* All code outputs are logged (./marc_ETL_task_output/) and unit tests (./outputs/); can easily be integrated into CI pipelines. 
+### TODOS:
+* - [ ] TODO: Improve visuals of logs and outputs
+* - [ ] TODO: Organize more code into functions

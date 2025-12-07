@@ -397,14 +397,10 @@ def log_df(df):
     Logs a Spark DataFrame to ./outputs/ with timestamped filename.
     Writes in CSV with header for readability.
     """
-    # Create local outputs directory if not exists
-    local_out_dir = os.path.join(os.getcwd(), "outputs")
-    os.makedirs(local_out_dir, exist_ok=True)
-
     # Timestamp for unique filenames
     ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     # Full path for the log file
-    output_path = os.path.join(local_out_dir, f"joined_kick_results_{ts}")
+    output_path = os.path.join(log_dir, f"joined_kick_results_{ts}")
     if LOCAL:
         # Write as CSV — best for reviewing in text/PyCharm/Excel
         df.toPandas().to_csv(output_path, index=False)

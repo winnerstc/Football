@@ -1,0 +1,3 @@
+✔ PASS: Bronze vs Silver row count
+✔ PASS: Fact vs Silver row count
+✔ PASS: Foreign keys validation
