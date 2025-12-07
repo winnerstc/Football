@@ -54,23 +54,62 @@ pipeline {
         /* -------------------------------------------------
          * 3. Run Spark ETL Scripts
          * ------------------------------------------------- */
-        stage('Run Spark Scripts') {
+        stage('Run spark nfl player script') {
             steps {
-                sh """
-                    echo "🔍 Checking HDFS incremental directory"
-                    hdfs dfs -ls /tmp/DE011025/Joe/incremental || { echo '❌ HDFS path missing'; exit 1; }
-
-                    echo "🚀 Running Spark Jobs"
-                    for script in nfl_players nfl_rushing nfl_receiving nfl_defensive nfl_kicking nfl_passing nfl_returns
-                    do
-                        echo "====== Running Spark Script: \$script ======"
-                        spark-submit --master local[*] \
-                            ${PYTHON_SCRIPTS_DIR}/\${script}_inc.py
-                    done
-                """
+                sh '''
+                  echo "Running silver cleaning script..."
+                  spark-submit Incremental/nfl_players_.py
+                '''
             }
         }
-
+        stage('Run spark nfl defensive script') {
+            steps {
+                sh '''
+                  echo "Running silver cleaning script..."
+                  spark-submit Incremental/nfl_defensive_.py
+                '''
+            }
+        }
+        stage('Run spark nfl kicking script') {
+            steps {
+                sh '''
+                  echo "Running silver cleaning script..."
+                  spark-submit Incremental/nfl_kicking_.py
+                '''
+            }
+        }
+        stage('Run spark nfl passing script') {
+            steps {
+                sh '''
+                  echo "Running silver cleaning script..."
+                  spark-submit Incremental/nfl_passing_.py
+                '''
+            }
+        }
+        stage('Run spark nfl receiving script') {
+            steps {
+                sh '''
+                  echo "Running silver cleaning script..."
+                  spark-submit Incremental/nfl_receiving_.py
+                '''
+            }
+        }
+        stage('Run spark nfl returns script') {
+            steps {
+                sh '''
+                  echo "Running silver cleaning script..."
+                  spark-submit Incremental/nfl_returns_.py
+                '''
+            }
+        }
+        stage('Run spark nfl rushing script') {
+            steps {
+                sh '''
+                  echo "Running silver cleaning script..."
+                  spark-submit Incremental/nfl_rushing_.py
+                '''
+            }
+        }
         /* -------------------------------------------------
          * 4. Run Hive SQL script
          * ------------------------------------------------- */
