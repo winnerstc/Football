@@ -5,7 +5,7 @@ pipeline {
     environment {
         HADOOP_USER_NAME   = 'hdfs'
         GITHUB_REPO        = 'https://github.com/winnerstc/Football.git'
-        PYTHON_SCRIPTS_DIR = 'Incremental'
+        PYTHON_SCRIPTS_DIR = 'Incremental'   // folder inside the repo
         HIVE_JDBC_URL      = 'jdbc:hive2://ip-172-31-3-80.eu-west-2.compute.internal:10000/joepostgres'
         HIVE_USER          = 'admin'
         HIVE_PASSWORD      = 'admin123'
@@ -13,85 +13,69 @@ pipeline {
     }
 
     stages {
-
         /* -------------------------------------------------
-         * 1. CHECKOUT FROM GITHUB
+         * 1.  pull scripts from GitHub
          * ------------------------------------------------- */
         stage('Checkout Scripts') {
             steps {
                 git branch: 'Development-Branch',
                     url: "${GITHUB_REPO}"
-
-                sh """
-                    echo "Showing script directory:"
-                    ls -la ${PYTHON_SCRIPTS_DIR}
-                """
+                sh 'ls -la ${PYTHON_SCRIPTS_DIR}   # sanity check'
             }
         }
 
         /* -------------------------------------------------
-         * 2. SQOOP IMPORTS
+         * 2.  Sqoop imports (your existing commands)
          * ------------------------------------------------- */
         stage('Run Sqoop Imports') {
             steps {
-                sh """
-                echo "Starting Sqoop Imports..."
-
+                sh '''
                 for tbl in nfl_players nfl_rushing nfl_receiving nfl_defensive nfl_kicking nfl_passing nfl_returns
                 do
-                  echo "Importing table: \$tbl"
                   sqoop import \
                     --connect jdbc:postgresql://18.134.163.221:5432/joepostgres \
-                    --username admin \
-                    --password admin123 \
-                    --table \$tbl \
-                    -m 1 \
-                    --as-parquetfile \
-                    --delete-target-dir \
-                    --target-dir /tmp/DE011025/Joe/incremental/\$tbl
+                    --username admin --password admin123 \
+                    --table $tbl -m 1 --as-parquetfile \
+                    --target-dir /tmp/DE011025/Joe/incremental/$tbl \
+                    --delete-target-dir
                 done
-                """
+                '''
             }
         }
 
         /* -------------------------------------------------
-         * 3. SPARK PROCESSING SCRIPTS
+         * 3.  Spark scripts from GitHub
          * ------------------------------------------------- */
-        stage('Run Spark Scripts') {
+       stage('Run Spark Scripts') {
             steps {
-                sh """
-                echo "Checking HDFS path:"
+                sh '''
                 hdfs dfs -ls /tmp/DE011025/Joe/incremental || { echo "HDFS path missing"; exit 1; }
-
                 for script in nfl_players nfl_rushing nfl_receiving nfl_defensive nfl_kicking nfl_passing nfl_returns
                 do
-                  echo "===================================="
-                  echo "Running Spark script: \$script"
-                  spark-submit --master local[*] ${PYTHON_SCRIPTS_DIR}/\${script}_inc.py
+                  echo "======  $script  ======"
+                  spark-submit --master local[*] \
+                    ${PYTHON_SCRIPTS_DIR}/${script}_inc.py
                 done
-                """
+                '''
             }
         }
 
         /* -------------------------------------------------
-         * 4. HIVE SQL UPDATE
+         * 4.  Hive update
          * ------------------------------------------------- */
         stage('Run Hive SQL Script') {
             steps {
                 sh """
-                echo "Running Hive SQL script: ${HIVE_FILE}"
-
-                beeline -u '${HIVE_JDBC_URL}' \
-                    -n ${HIVE_USER} \
-                    -p ${HIVE_PASSWORD} \
-                    -f ${HIVE_FILE}
+                beeline -u \"${HIVE_JDBC_URL}\" \
+                  -n ${HIVE_USER} -p ${HIVE_PASSWORD} \
+                  -f ${HIVE_FILE}
                 """
             }
         }
     }
 
     post {
-        success { echo '🎉 Pipeline finished successfully' }
-        failure { echo '❌ Pipeline failed — check logs' }
+        success { echo '🎉 Pipeline finished' }
+        failure { echo '❌ Pipeline failed – see logs above' }
     }
 }
