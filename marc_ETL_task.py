@@ -100,7 +100,7 @@ bronze_path = "hdfs:///tmp/DE011025/marc/raw/"
 silver_path = "hdfs:///tmp/DE011025/marc/silver/"
 gold_path_base = "hdfs:///tmp/DE011025/marc/gold/"
 
-# Read raw source data
+# Read raw source data from csv if local is true else update HIVE table definitions and read from HDFS
 if LOCAL:
     csv_file = "Career_Stats_Kick_Return.csv"
     staging_df = spark.read \
@@ -114,11 +114,13 @@ else:
         spark.sql(f"DROP TABLE IF EXISTS {table_name}")
         spark.sql(ddl)
 
-    # Bronze Table
+
+    bronze_table_name = "marc_bronze_kick_returns"
+    # UPDATE Bronze Table
     recreate_table(
-        "marc_bronze_kick_return",
+        bronze_table_name,
         f"""
-        CREATE EXTERNAL TABLE IF NOT EXISTS marc_bronze_kick_return (
+        CREATE EXTERNAL TABLE IF NOT EXISTS {bronze_table_name} (
             player_id STRING,
             name STRING,
             position STRING,
@@ -143,11 +145,12 @@ else:
         """
     )
 
-    # Silver Table
+    silver_table_name = "marc_silver_kick_returns"
+    # UPDATE Silver Table
     recreate_table(
-        "marc_silver_kick_return",
+        silver_table_name,
         f"""
-        CREATE EXTERNAL TABLE IF NOT EXISTS marc_silver_kick_return (
+        CREATE EXTERNAL TABLE IF NOT EXISTS {silver_table_name} (
             team_std STRING,
             fair_catches_clean INT,
             returns_clean INT,
@@ -176,6 +179,93 @@ else:
         )
         STORED AS PARQUET
         LOCATION '{silver_path}'
+        """
+    )
+
+    # UPDATE GOLD TABLES
+    # Gold table paths
+    gold_fact_path = f"{gold_path_base}/fact/"
+    gold_dim_player_path = f"{gold_path_base}/dim_player/"
+    gold_dim_team_path = f"{gold_path_base}/dim_team/"
+    gold_dim_year_path = f"{gold_path_base}/dim_year/"
+
+    # FACT TABLE
+    gold_fact_table_name = "marc_gold_kick_return"
+    recreate_table(
+        gold_fact_table_name,
+        f"""
+        CREATE EXTERNAL TABLE IF NOT EXISTS gold_fact_table_name (
+            player_key INT,
+            team_key INT,
+            year_key INT,
+            games_played INT,
+            returns INT,
+            yards_returned INT,
+            yards_per_return DOUBLE,
+            returns_longer_20 INT,
+            returns_longer_40 INT,
+            returns_for_tds INT,
+            fumbles INT,
+            success_rate_20plus DOUBLE,
+            success_rate_40plus DOUBLE,
+            turnover_risk DOUBLE,
+            weighted_return_score DOUBLE,
+            cumulative_yards DOUBLE
+        )
+        STORED AS PARQUET
+        LOCATION '{gold_fact_path}'
+        """
+    )
+
+    gold_dim_player_table_name = "marc_gold_dim_player"
+    # DIM PLAYER TABLE
+    recreate_table(
+        gold_dim_player_table_name,
+        f"""
+        CREATE EXTERNAL TABLE IF NOT EXISTS {gold_dim_player_table_name} (
+            player_key INT,
+            player_id STRING,
+            name STRING,
+            position_std STRING,
+            debut_year INT,
+            last_year INT,
+            total_yards INT,
+            total_returns INT,
+            career_span INT,
+            rookie_numeric INT,
+            avg_yards_per_year DOUBLE,
+            avg_returns_per_year DOUBLE
+        )
+        STORED AS PARQUET
+        LOCATION '{gold_dim_player_path}'
+        """
+    )
+
+    gold_dim_team_table_name = "gold_dim_player_table_name"
+    # DIM TEAM TABLE
+    recreate_table(
+        gold_dim_team_table_name,
+        f"""
+        CREATE EXTERNAL TABLE IF NOT EXISTS {gold_dim_team_table_name} (
+            team_key INT,
+            team_std STRING
+        )
+        STORED AS PARQUET
+        LOCATION '{gold_dim_team_path}'
+        """
+    )
+
+    gold_dim_year_name = "marc_gold_dim_year"
+    # DIM YEAR TABLE
+    recreate_table(
+        {gold_dim_year_name},
+        f"""
+        CREATE EXTERNAL TABLE IF NOT EXISTS {gold_dim_year_name} (
+            year_key INT,
+            year INT
+        )
+        STORED AS PARQUET
+        LOCATION '{gold_dim_year_path}'
         """
     )
 
@@ -321,9 +411,12 @@ def log_df(df):
     else:
         df.coalesce(1).write.mode("overwrite").option("header", True).csv(output_path)
     print(f"[INFO] Test results logged to: {output_path}")
+# Log test results, stop Spark session and show memory usage
 log_df(joined)
 
+spark.stop()
 print("ETL pipeline complete. All tables written to HDFS and validations executed.")
+
 monitoring = False
 monitor_thread.join(timeout=1)
 print(f"[INFO] Peak memory used during ETL: {max_mem:.2f} MB")
