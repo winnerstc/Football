@@ -1,110 +1,77 @@
 pipeline {
-
     agent any
 
-    /*******************************
-     * PARAMETERS
-     *******************************/
-    parameters {
-        booleanParam(name: 'RUN_HIVE', defaultValue: true, description: 'Run Hive Fact Load')
-    }
-
-    /*******************************
-     * ENVIRONMENT VARIABLES
-     *******************************/
     environment {
-        PG_URL    = "jdbc:postgresql://18.134.163.221:5432/joepostgres"
-        PG_USER   = "admin"
-        PG_PASS   = "admin123"
-        BASE_PATH = "/tmp/DE011025/Joe"
-
-        HIVE_HOST = "ip-172-31-3-80.eu-west-2.compute.internal"
-        HIVE_PORT = "10000"
-        HIVE_DB   = "default"
-        HIVE_USER = "Consultants"
-        HIVE_PASS = "WelcomeItc@2022"
-
-        HIVE_URL  = "jdbc:hive2://${HIVE_HOST}:${HIVE_PORT}/${HIVE_DB}"
+        HADOOP_USER_NAME = 'hdfs'
+        GITHUB_REPO = 'https://github.com/winnerstc/Football.git'
+        PYTHON_SCRIPTS_DIR = 'incremental'
+        HIVE_JDBC_URL = 'jdbc:hive2://ip-172-31-3-80.eu-west-2.compute.internal:10000/joepostgres'
+        HIVE_USER = 'admin'
+        HIVE_PASSWORD = 'admin123'
+        HIVE_FILE = 'update_fact_player_stats.sql'
     }
 
-    /*******************************
-     * PIPELINE STAGES
-     *******************************/
     stages {
 
-        /* ---------------- CHECKOUT ---------------- */
-        stage('Checkout') {
+        stage('Checkout GitHub Repo') {
             steps {
-                git branch: 'main',
-                    url: 'https://github.com/winnerstc/Football.git'
+                git branch: 'main', url: "${GITHUB_REPO}"
             }
         }
 
-        /* ---------------- PYTHON DEPENDENCIES ---------------- */
-        stage('Install Dependencies') {
-            steps {
-                sh '''
-                    python3 --version
-                    python3 -m pip install --upgrade pip --user
-                    python3 -m pip install pandas numpy requests boto3 pytest --user
-                '''
-            }
-        }
-
-        /* ---------------- RUN HIVE SCRIPT ---------------- */
-        stage('Run Hive Fact & Dimensions') {
-            when { expression { params.RUN_HIVE == true } }
+        stage('Run Sqoop Imports') {
             steps {
                 sh """
-                    echo "===== Running Hive star-schema build via Beeline ====="
+                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_players --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/incremental/nfl_players
 
-                    beeline -u "${HIVE_URL}" \
-                            -n "${HIVE_USER}" \
-                            -p "${HIVE_PASS}" \
-                            -f hive/fact_player_stats.sql
+                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_rushing --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/incremental/nfl_rushing
 
-                    echo "===== Hive star-schema build completed ====="
+                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_receiving --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/incremental/nfl_receiving
+
+                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_defensive --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/incremental/nfl_defensive
+
+                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_kicking --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/incremental/nfl_kicking
+
+                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_passing --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/incremental/nfl_passing
+
+                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_returns --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/incremental/nfl_returns
+
+                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table college_teams --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/static/college_teams
+
+                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_teams --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/static/nfl_teams
                 """
             }
         }
 
-        /* ------------------ INCREMENTAL SQOOP LOAD ------------------ */
-        stage('Sqoop INCREMENTAL Load') {
-            when { expression { params.RUN_MODE == "INCREMENTAL" } }
+        stage('Run Spark Scripts') {
             steps {
                 sh """
-                echo "===== INCREMENTAL SQOOP IMPORT started ====="
-                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_players --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/incremental/nfl_players --delete-target-dir
-                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_rushing --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/incremental/nfl_rushing --delete-target-dir
-                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_receiving --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/incremental/nfl_receiving --delete-target-dir
-                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_defensive --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/incremental/nfl_defensive --delete-target-dir
-                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_kicking --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/incremental/nfl_kicking --delete-target-dir
-                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_passing --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/incremental/nfl_passing --delete-target-dir
-                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_returns --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/incremental/nfl_returns --delete-target-dir
-                echo "===== INCREMENTAL SQOOP IMPORT completed ====="
+                spark-submit ${PYTHON_SCRIPTS_DIR}/nfl_players_incremental.py
+                spark-submit ${PYTHON_SCRIPTS_DIR}/nfl_rushing_incremental.py
+                spark-submit ${PYTHON_SCRIPTS_DIR}/nfl_receiving_incremental.py
+                spark-submit ${PYTHON_SCRIPTS_DIR}/nfl_defensive_incremental.py
+                spark-submit ${PYTHON_SCRIPTS_DIR}/nfl_kicking_incremental.py
+                spark-submit ${PYTHON_SCRIPTS_DIR}/nfl_passing_incremental.py
+                spark-submit ${PYTHON_SCRIPTS_DIR}/nfl_returns_incremental.py
                 """
             }
         }
-        /* ------------------ INCREMENTAL SCRIPT ------------------ */
-        stage('Run Incremental Spark Jobs') {
-    when { expression { params.RUN_MODE == "INCREMENTAL" } }
-    steps {
-        sh """
-        spark-submit --master yarn --deploy-mode cluster Incremental/nfl_players_inc.py
-        spark-submit --master yarn --deploy-mode cluster Incremental/nfl_passing_inc.py
-        spark-submit --master yarn --deploy-mode cluster Incremental/nfl_rushing_inc.py
-        spark-submit --master yarn --deploy-mode cluster Incremental/nfl_receiving_inc.py
-        spark-submit --master yarn --deploy-mode cluster Incremental/nfl_defensive_inc.py
-        spark-submit --master yarn --deploy-mode cluster Incremental/nfl_kicking_inc.py
-        spark-submit --master yarn --deploy-mode cluster Incremental/nfl_returns_inc.py
-        """
+
+        stage('Run Hive SQL Script') {
+            steps {
+                sh """
+                beeline -u "${HIVE_JDBC_URL}" -n ${HIVE_USER} -p ${HIVE_PASSWORD} -f ${HIVE_FILE}
+                """
+            }
+        }
     }
-   }
-        /* ---------------- PYTHON TESTS ---------------- */
-        stage('Run Tests') {
-            steps {
-                sh 'pytest -q || true'
-            }
+
+    post {
+        success {
+            echo "Pipeline completed successfully!"
+        }
+        failure {
+            echo "Pipeline failed — check logs."
         }
     }
 }
