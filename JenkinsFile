@@ -53,7 +53,7 @@ pipeline {
                 for script in nfl_players nfl_rushing nfl_receiving nfl_defensive nfl_kicking nfl_passing nfl_returns
                 do
                   echo "======  $script  ======"
-                  spark-submit --master yarn --deploy-mode client \
+                  spark-submit --master local[*] \
                     ${PYTHON_SCRIPTS_DIR}/${script}_inc.py
                 done
                 '''
