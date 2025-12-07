@@ -7,8 +7,8 @@ pipeline {
         GITHUB_REPO        = 'https://github.com/winnerstc/Football.git'
         PYTHON_SCRIPTS_DIR = 'Incremental'
         HIVE_JDBC_URL      = 'jdbc:hive2://ip-172-31-8-235.eu-west-2.compute.internal:10000/joepostgres'
-        HIVE_USER          = 'admin'
-        HIVE_PASSWORD      = 'admin123'
+        HIVE_USER          = 'Consultants'
+        HIVE_PASSWORD      = 'WelcomeItc@2022'
         HIVE_FILE          = 'update_fact_player_stats.sql'
     }
 
