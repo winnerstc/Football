@@ -13,40 +13,75 @@ pipeline {
 
     stages {
 
+        /*---------------------------------------------------
+         * CHECKOUT REPO
+         *---------------------------------------------------*/
         stage('Checkout GitHub Repo') {
             steps {
                 git branch: 'Development-Branch', url: "${GITHUB_REPO}"
             }
         }
 
+        /*---------------------------------------------------
+         * SQOOP IMPORT STAGE
+         *---------------------------------------------------*/
         stage('Run Sqoop Imports') {
             steps {
                 sh """
-                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_players --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/incremental/nfl_players --delete-target-dir
+                set -e
 
-                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_rushing --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/incremental/nfl_rushing --delete-target-dir
+                echo "Starting Sqoop Imports..."
 
+                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres \
+                    --username admin --password admin123 \
+                    --table nfl_players --m 1 --as-parquetfile \
+                    --target-dir /tmp/DE011025/Joe/incremental/nfl_players --delete-target-dir
 
-                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_receiving --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/incremental/nfl_receiving --delete-target-dir
-                
-                
-                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_defensive --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/incremental/nfl_defensive --delete-target-dir
+                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres \
+                    --username admin --password admin123 \
+                    --table nfl_rushing --m 1 --as-parquetfile \
+                    --target-dir /tmp/DE011025/Joe/incremental/nfl_rushing --delete-target-dir
 
+                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres \
+                    --username admin --password admin123 \
+                    --table nfl_receiving --m 1 --as-parquetfile \
+                    --target-dir /tmp/DE011025/Joe/incremental/nfl_receiving --delete-target-dir
 
-                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_kicking --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/incremental/nfl_kicking --delete-target-dir
-                
-                
-                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_passing --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/incremental/nfl_passing --delete-target-dir
-                
-                
-                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres --username admin --password admin123 --table nfl_returns --m 1 --as-parquetfile --target-dir /tmp/DE011025/Joe/incremental/nfl_returns --delete-target-dir
+                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres \
+                    --username admin --password admin123 \
+                    --table nfl_defensive --m 1 --as-parquetfile \
+                    --target-dir /tmp/DE011025/Joe/incremental/nfl_defensive --delete-target-dir
+
+                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres \
+                    --username admin --password admin123 \
+                    --table nfl_kicking --m 1 --as-parquetfile \
+                    --target-dir /tmp/DE011025/Joe/incremental/nfl_kicking --delete-target-dir
+
+                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres \
+                    --username admin --password admin123 \
+                    --table nfl_passing --m 1 --as-parquetfile \
+                    --target-dir /tmp/DE011025/Joe/incremental/nfl_passing --delete-target-dir
+
+                sqoop import --connect jdbc:postgresql://18.134.163.221:5432/joepostgres \
+                    --username admin --password admin123 \
+                    --table nfl_returns --m 1 --as-parquetfile \
+                    --target-dir /tmp/DE011025/Joe/incremental/nfl_returns --delete-target-dir
+
+                echo "Sqoop Imports Completed Successfully!"
                 """
             }
         }
 
+        /*---------------------------------------------------
+         * SPARK STAGE
+         *---------------------------------------------------*/
         stage('Run Spark Scripts') {
             steps {
                 sh """
+                set -e
+
+                echo "Starting Spark Incremental Jobs..."
+
                 spark-submit ${PYTHON_SCRIPTS_DIR}/nfl_players_inc.py
                 spark-submit ${PYTHON_SCRIPTS_DIR}/nfl_rushing_inc.py
                 spark-submit ${PYTHON_SCRIPTS_DIR}/nfl_receiving_inc.py
@@ -54,25 +89,42 @@ pipeline {
                 spark-submit ${PYTHON_SCRIPTS_DIR}/nfl_kicking_inc.py
                 spark-submit ${PYTHON_SCRIPTS_DIR}/nfl_passing_inc.py
                 spark-submit ${PYTHON_SCRIPTS_DIR}/nfl_returns_inc.py
+
+                echo "Spark Jobs Completed Successfully!"
                 """
             }
         }
 
+        /*---------------------------------------------------
+         * HIVE SQL STAGE
+         *---------------------------------------------------*/
         stage('Run Hive SQL Script') {
             steps {
                 sh """
-                beeline -u "${HIVE_JDBC_URL}" -n ${HIVE_USER} -p ${HIVE_PASSWORD} -f ${HIVE_FILE}
+                set -e
+
+                echo "Running Hive SQL Script..."
+
+                beeline -u "${HIVE_JDBC_URL}" \
+                    -n ${HIVE_USER} \
+                    -p ${HIVE_PASSWORD} \
+                    -f ${HIVE_FILE}
+
+                echo "Hive Script Completed Successfully!"
                 """
             }
         }
     }
 
+    /*---------------------------------------------------
+     * POST ACTIONS
+     *---------------------------------------------------*/
     post {
         success {
-            echo "Pipeline completed successfully!"
+            echo "🎉 Pipeline completed successfully!"
         }
         failure {
-            echo "Pipeline failed — check logs."
+            echo "❌ Pipeline failed — check logs."
         }
     }
 }
