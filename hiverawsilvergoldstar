@@ -1,0 +1,1085 @@
+
+select * from nfl_defensive_inc where year = '2017';
+select * from nfl_defensive_silver where year = 2017;
+select * from players_dim;
+select count(*) from nfl_players;
+
+CREATE EXTERNAL TABLE nfl_passing
+(player_id string,
+name string,
+position string,
+year string,
+team string,
+games_played string,
+passes_attempted string,
+passes_completed string,
+completion_percentage string,
+pass_attempts_per_game string,
+passing_yards string,
+passing_yards_per_attempt string,
+td_passes string,
+percentage_of_tds_per_attempts string,
+ints string, 
+int_rate string,
+longest_pass string,
+passes_longer_than_20_yards string,
+passes_longer_than_40_yards string,
+sacks string,
+sacked_yards_lost string,
+passer_rating string)
+STORED AS PARQUET
+LOCATION "/tmp/DE011025/Joe/raw/nfl_passing";
+
+DESCRIBE FORMATTED nfl_passing
+drop table nfl_passing;
+select * from nfl_passing;
+
+
+CREATE EXTERNAL TABLE nfl_rushing
+(player_id string,
+name string,
+postion string,
+year string,
+team string,
+games_played string,
+rushing_attempts string,
+rushing_attempts_per_game string,
+rushing_yards string,
+yards_per_carry string,
+rushing_yards_per_game string,
+rushing_tds string,
+longest_rushing_run string,
+rushing_first_downs string,
+percentage_of_rushing_first string,
+rushing_more_than_20_yards string,
+rushing_more_than_40_yards string,
+fumbles string)
+STORED AS PARQUET
+LOCATION "/tmp/DE011025/Joe/raw/nfl_rushing";
+
+CREATE EXTERNAL TABLE nfl_receiving
+(player_id string,
+name string,
+position string,
+year string,
+team string,
+games_played string,
+receptions string,
+receiving_yards string,
+yards_per_reception string,
+yards_per_game string,
+longest_reception string,
+receiving_tds string,
+receptions_longer_than_20_yards string,
+receptions_longer_than_40_yards string,
+first_down_receptions string,
+fumbles string)
+STORED AS PARQUET
+LOCATION "/tmp/DE011025/Joe/raw/nfl_receiving";
+
+CREATE EXTERNAL TABLE nfl_defensive
+(player_id string,
+name string,
+postion string,
+year string,
+team string,
+games_played string,
+total_tackles string,
+solo_tackles string,
+assisted_tackles string,
+sacks string,
+safties string,
+passes_defended string,
+ints string,
+ints_for_tds string,
+int_yards string,
+yards_per_int string,
+longest_int_return string)
+STORED AS PARQUET
+LOCATION "/tmp/DE011025/Joe/raw/nfl_defensive";
+
+
+CREATE EXTERNAL TABLE nfl_kicking
+(player_id string,
+name string,
+position string,
+year string,
+team string,
+games_played string,
+kicks_blocked string,
+longest_fg_made string,
+fgs_made string,
+fgs_attempted string,
+fg_percentage string,
+fgs_made_2029_yards string,
+fgs_attempted_2029_yards string,
+fgs_percentage_2029_yards string,
+fgs_made_3039_yards string,
+fgs_attempted_3039_yards string,
+fgs_percentage_3039_yards string,
+fgs_made_4049_yards string,
+fgs_attempted_4049_yards string,
+fgs_percentage_4049_yards string,
+fgs_made_50_yards string,
+fgs_attempted_50_yards string,
+fgs_percentage_50_yards string,
+extra_points_attempted string,
+extra_points_made string,
+percentage_of_extra_points string,
+extra_points_blocked string)
+STORED AS PARQUET
+LOCATION "/tmp/DE011025/Joe/raw/nfl_kicking";
+
+
+CREATE EXTERNAL TABLE nfl_returns
+(player_id string,
+name string,
+position string,
+year string,
+team string,
+games_played string,
+kick_returns string,
+yards_kick_returned string,
+kick_returns_for_tds string,
+punt_returns string,
+yards_punt_returned string,
+punt_returns_for_tds string)
+STORED AS PARQUET
+LOCATION "/tmp/DE011025/Joe/raw/nfl_returns";
+
+select * from college_dim;
+
+CREATE EXTERNAL TABLE college_dim
+(school string,
+state string,
+city string,
+football_attendence int,
+stadium_size int)
+STORED AS PARQUET
+LOCATION "/tmp/DE011025/Joe/static/college_teams";
+
+CREATE EXTERNAL TABLE nfl_teams
+(team_name string,
+home_stadium string,
+location string,
+lat string,
+long string,
+mascot string,
+live_mascots string,
+conference string,
+division string,
+superbowl_wins string,
+year_est string)
+STORED AS PARQUET
+LOCATION "/tmp/DE011025/Joe/static/nfl_teams";
+
+
+-- CREATE EXTERNAL TABLE nfl_players_silver (
+--     birthday DATE,
+--     college STRING,
+--     current_status STRING,
+--     current_team STRING,
+--     experience STRING,
+--     high_school_location STRING,
+--     player_id INT,
+--     birth_city STRING,
+--     birth_state STRING,
+--     first_name STRING,
+--     last_name STRING
+-- )
+-- STORED AS PARQUET
+-- LOCATION '/tmp/DE011025/Joe/silver/nfl_players_output';
+
+
+
+
+CREATE EXTERNAL TABLE nfl_players (
+    age STRING,
+    birth_place STRING,
+    birthday STRING,
+    college STRING,
+    current_status STRING,
+    current_team STRING,
+    experience STRING,
+    height_inches STRING,
+    high_school STRING,
+    name STRING,
+    number STRING,
+    player_id STRING,
+    position STRING,
+    weight_lbs STRING,
+    years_played STRING
+)
+STORED AS PARQUET
+LOCATION '/tmp/DE011025/Joe/raw/nfl_players';
+
+
+CREATE EXTERNAL TABLE nfl_players_silver (
+    birthday        DATE,
+    college         STRING,
+    current_status  STRING,
+    current_team    STRING,
+    experience      STRING,
+    player_id       INT,
+    last_name       STRING,
+    first_name      STRING,
+    birth_city      STRING,
+    birth_state     STRING
+)
+STORED AS PARQUET
+LOCATION '/tmp/DE011025/Joe/silver/nfl_players_output';
+
+
+CREATE EXTERNAL TABLE IF NOT EXISTS nfl_kicking_silver (
+    player_id INT,
+    year STRING,
+    team STRING,
+    games_played STRING,
+    longest_fg_made INT,
+    fgs_made INT,
+    fgs_attempted INT,
+    fg_percentage FLOAT,
+    fgs_made_2029_yards INT,
+    fgs_attempted_2029_yards INT,
+    fgs_percentage_2029_yards FLOAT,
+    fgs_made_3039_yards INT,
+    fgs_attempted_3039_yards INT,
+    fgs_percentage_3039_yards FLOAT,
+    fgs_made_4049_yards INT,
+    fgs_attempted_4049_yards INT,
+    fgs_percentage_4049_yards FLOAT,
+    fgs_made_50_yards INT,
+    fgs_attempted_50_yards INT,
+    fgs_percentage_50_yards FLOAT,
+    extra_points_attempted INT,
+    extra_points_made INT,
+    percentage_of_extra_points FLOAT,
+    last_name STRING,
+    first_name STRING
+)
+STORED AS PARQUET
+LOCATION 'hdfs:///tmp/DE011025/Joe/silver/nfl_kicking_output';
+
+
+
+select * from nfl_passing_silver;
+
+
+CREATE EXTERNAL TABLE IF NOT EXISTS nfl_passing_silver (
+    player_id INT,
+    year STRING,
+    team STRING,
+    games_played STRING,
+    passes_attempted INT,
+    passes_completed INT,
+    completion_percentage FLOAT,
+    passing_yards INT,
+    passing_yards_per_attempt FLOAT,
+    td_passes INT,
+    ints INT,
+    sacks FLOAT,
+    passer_rating STRING,
+    last_name STRING,
+    first_name STRING
+)
+STORED AS PARQUET
+LOCATION 'hdfs:///tmp/DE011025/Joe/silver/nfl_passing_output';
+
+
+CREATE EXTERNAL TABLE IF NOT EXISTS nfl_rushing_silver (
+    player_id INT,
+    postion STRING,
+    year STRING,
+    team STRING,
+    games_played STRING,
+    rushing_attempts INT,
+    rushing_yards INT,
+    yards_per_carry FLOAT,
+    rushing_tds INT,
+    longest_rushing_run INT,
+    rushing_first_downs INT,
+    percentage_of_rushing_first STRING,
+    fumbles INT,
+    last_name STRING,
+    first_name STRING
+)
+STORED AS PARQUET
+LOCATION 'hdfs:///tmp/DE011025/Joe/silver/nfl_rushing_output';
+
+
+CREATE EXTERNAL TABLE IF NOT EXISTS nfl_receiving_silver (
+    player_id INT,
+    year STRING,
+    team STRING,
+    games_played STRING,
+    receptions INT,
+    receiving_yards INT,
+    longest_reception INT,
+    receiving_tds INT,
+    fumbles INT,
+    last_name STRING,
+    first_name STRING
+)
+STORED AS PARQUET
+LOCATION 'hdfs:///tmp/DE011025/Joe/silver/nfl_receiving_output';
+
+CREATE EXTERNAL TABLE IF NOT EXISTS nfl_defensive_silver (
+    player_id INT,
+    postion STRING,
+    year STRING,
+    team STRING,
+    games_played STRING,
+    total_tackles FLOAT,
+    solo_tackles INT,
+    assisted_tackles INT,
+    sacks FLOAT,
+    safties INT,
+    passes_defended INT,
+    ints INT,
+    ints_for_tds INT,
+    int_yards INT,
+    last_name STRING,
+    first_name STRING
+)
+STORED AS PARQUET
+LOCATION 'hdfs:///tmp/DE011025/Joe/silver/nfl_defensive_output';
+
+select * from nfl_returns;
+
+CREATE EXTERNAL TABLE IF NOT EXISTS nfl_returns_silver (
+    player_id INT,
+    position STRING,
+    year STRING,
+    team STRING,
+    kick_returns INT,
+    yards_kick_returned INT,
+    kick_returns_for_tds INT,
+    punt_returns INT,
+    yards_punt_returned INT,
+    punt_returns_for_tds INT,
+    last_name STRING,
+    first_name STRING
+)
+STORED AS PARQUET
+LOCATION 'hdfs:///tmp/DE011025/Joe/silver/nfl_returns_output';
+
+select * from nfl_kicking_silver;
+
+=======================================
+
+----------CREATE STAR SCHEMA--------------
+
+========================================
+
+
+
+-- 1. Dimension tables
+-- 1a. Positions_Dim  (static lookup)
+CREATE TABLE Positions_Dim (
+position_key INT,
+name           STRING,
+difficulty     INT
+);
+-- INSERT INTO Positions_Dim VALUES
+-- (1, 'quarterback',      10),
+-- (2, 'runningback',       8),
+-- (3, 'wide receiver',     6),
+-- (4, 'dline/linebacker',  7),
+-- (5, 'db',                8),
+-- (6, 'kicker',            5),
+-- (7, 'return specialist', 9);
+-- Step 1: Create a temporary table or view to hold your raw data
+-- We use a single-row SELECT query with a UNION ALL for multiple rows
+-- and define the column names explicitly.
+
+CREATE VIEW temp_positions_staging AS
+SELECT 1 AS id, 'quarterback' AS position_name, 10 AS weight_score UNION ALL
+SELECT 2, 'runningback', 8 UNION ALL
+SELECT 3, 'wide receiver', 6 UNION ALL
+SELECT 4, 'dline/linebacker', 7 UNION ALL
+SELECT 5, 'db', 8 UNION ALL
+SELECT 6, 'kicker', 5 UNION ALL
+SELECT 7, 'return specialist', 9;
+
+-- Step 2: Insert (Append) the data from the temporary view into your main ORC table
+INSERT INTO TABLE Positions_Dim
+SELECT id, position_name, weight_score FROM temp_positions_staging;
+
+-- 1b. Teams_Dim  (rename of existing table)
+ALTER TABLE nfl_teams RENAME TO Teams_Dim;
+-- ensure PK-like behaviour (Hive does not enforce PK)
+ALTER TABLE Teams_Dim SET TBLPROPERTIES ('comment'='PK: team_name');
+-- 1c. College_Dim (rename of existing table)
+ALTER TABLE college_teams RENAME TO College_Dim;
+ALTER TABLE College_Dim  SET TBLPROPERTIES ('comment'='PK: college');
+-- 1d. Players_Dim
+CREATE TABLE Players_Dim (
+player_key     INT,
+first_name     STRING,
+last_name      STRING,
+city           STRING,
+state          STRING,
+current_status STRING
+)
+STORED AS ORC;
+INSERT INTO Players_Dim
+SELECT
+CAST(player_id AS INT),
+first_name,
+last_name,
+birth_city,
+birth_state,
+current_status
+FROM nfl_players_silver;
+
+-- SELECT * from players_dim;
+-- 2. Fact table
+CREATE TABLE Fact_Player_Stats (
+player_key        INT,
+college_key       STRING,
+team_key          STRING,
+position_key      INT,
+passing_yards     INT,
+passing_tds       INT,
+rushing_yards     INT,
+rushing_tds       INT,
+receiving_yards   INT,
+receiving_tds     INT,
+total_tackles     INT,
+sacks             INT,
+ints              INT,
+fgs_made          INT,
+kick_return_tds   INT,
+punt_return_tds   INT,
+years_played      STRING,
+good_years        INT
+)
+STORED AS ORC;
+
+
+--------------------------------------------------------------------
+-- 3.  POPULATE FACT TABLE  (HiveQL – college → school join fixed)
+--------------------------------------------------------------------
+
+
+select * from fact_player_stats where position_key = 2;
+
+
+SELECT pl.player_id, pl.college, cd.school
+FROM nfl_players_silver pl
+LEFT JOIN College_Dim cd ON pl.college = cd.school
+LIMIT 10;
+
+select * from college_dim;
+
+
+
+SELECT * FROM stats0
+WHERE player_id = 2523024;
+
+
+
+-- 1. passing
+CREATE OR REPLACE VIEW v_passing AS
+SELECT CAST(player_id AS INT) AS player_id,
+       SUM(COALESCE(passing_yards,0)) AS passing_yards,
+       SUM(COALESCE(td_passes,0))     AS passing_tds,
+       COUNT(DISTINCT year)           AS years
+FROM nfl_passing_silver
+GROUP BY player_id;
+
+-- 2. rushing
+CREATE OR REPLACE VIEW v_rushing AS
+SELECT CAST(player_id AS INT) AS player_id,
+       SUM(COALESCE(rushing_yards,0)) AS rushing_yards,
+       SUM(COALESCE(rushing_tds,0))   AS rushing_tds,
+       COUNT(DISTINCT year)           AS years
+FROM nfl_rushing_silver
+GROUP BY player_id;
+
+-- 3. receiving
+CREATE OR REPLACE VIEW v_receiving AS
+SELECT CAST(player_id AS INT) AS player_id,
+       SUM(COALESCE(receiving_yards,0)) AS receiving_yards,
+       SUM(COALESCE(receiving_tds,0))   AS receiving_tds,
+       COUNT(DISTINCT year)             AS years
+FROM nfl_receiving_silver
+GROUP BY player_id;
+
+-- 4. defense
+CREATE OR REPLACE VIEW v_defense AS
+SELECT CAST(player_id AS INT) AS player_id,
+       SUM(COALESCE(total_tackles,0)) AS total_tackles,
+       SUM(COALESCE(sacks,0))         AS sacks,
+       SUM(COALESCE(ints,0))          AS ints,
+       COUNT(DISTINCT year)           AS years
+FROM nfl_defensive_silver
+GROUP BY player_id;
+
+-- 5. kicking
+CREATE OR REPLACE VIEW v_kicking AS
+SELECT CAST(player_id AS INT) AS player_id,
+       SUM(COALESCE(fgs_made,0)) AS fgs_made,
+       COUNT(DISTINCT year)      AS years
+FROM nfl_kicking_silver
+GROUP BY player_id;
+
+-- 6. returns
+CREATE OR REPLACE VIEW v_returns AS
+SELECT CAST(player_id AS INT) AS player_id,
+       SUM(COALESCE(kick_returns_for_tds,0)) AS kick_return_tds,
+       SUM(COALESCE(punt_returns_for_tds,0)) AS punt_return_tds,
+       COUNT(DISTINCT year)                  AS years
+FROM nfl_returns_silver
+GROUP BY player_id;
+
+=====================================================================
+
+=====================================================================
+
+
+
+======================================================================
+
+-- ============================================================
+--  HiveQL  –  star-schema load  (views + FULL JOIN driver)
+-- ============================================================
+CREATE DATABASE IF NOT EXISTS nfl_analytics;
+USE nfl_analytics;
+
+--------------------------------------------------------------------
+-- 1.  PRE-COMPUTE VIEWS  (run once)
+--------------------------------------------------------------------
+CREATE OR REPLACE VIEW v_passing AS
+SELECT CAST(player_id AS INT)              AS player_id,
+       SUM(COALESCE(passing_yards,0))      AS passing_yards,
+       SUM(COALESCE(td_passes,0))          AS passing_tds,
+       COUNT(DISTINCT year)                AS years
+FROM   nfl_passing_silver
+GROUP  BY player_id;
+
+CREATE OR REPLACE VIEW v_rushing AS
+SELECT CAST(player_id AS INT)              AS player_id,
+       SUM(COALESCE(rushing_yards,0))      AS rushing_yards,
+       SUM(COALESCE(rushing_tds,0))        AS rushing_tds,
+       COUNT(DISTINCT year)                AS years
+FROM   nfl_rushing_silver
+GROUP  BY player_id;
+
+CREATE OR REPLACE VIEW v_receiving AS
+SELECT CAST(player_id AS INT)              AS player_id,
+       SUM(COALESCE(receiving_yards,0))    AS receiving_yards,
+       SUM(COALESCE(receiving_tds,0))      AS receiving_tds,
+       COUNT(DISTINCT year)                AS years
+FROM   nfl_receiving_silver
+GROUP  BY player_id;
+
+CREATE OR REPLACE VIEW v_defense AS
+SELECT CAST(player_id AS INT)              AS player_id,
+       SUM(COALESCE(total_tackles,0))      AS total_tackles,
+       SUM(COALESCE(sacks,0))              AS sacks,
+       SUM(COALESCE(ints,0))               AS ints,
+       COUNT(DISTINCT year)                AS years
+FROM   nfl_defensive_silver
+GROUP  BY player_id;
+
+CREATE OR REPLACE VIEW v_kicking AS
+SELECT CAST(player_id AS INT)              AS player_id,
+       SUM(COALESCE(fgs_made,0))           AS fgs_made,
+       COUNT(DISTINCT year)                AS years
+FROM   nfl_kicking_silver
+GROUP  BY player_id;
+
+CREATE OR REPLACE VIEW v_returns AS
+SELECT CAST(player_id AS INT)              AS player_id,
+       SUM(COALESCE(kick_returns_for_tds,0)) AS kick_return_tds,
+       SUM(COALESCE(punt_returns_for_tds,0)) AS punt_return_tds,
+       COUNT(DISTINCT year)                  AS years
+FROM   nfl_returns_silver
+GROUP  BY player_id;
+
+--------------------------------------------------------------------
+-- 2.  FACT TABLE POPULATION  (run after dim tables exist)
+--------------------------------------------------------------------
+-- ============================================================
+--  HiveQL  –  load Fact_Player_Stats  (uses 6 pre-built views)
+--  run after Positions_Dim, Players_Dim, Teams_Dim, College_Dim exist
+-- ============================================================
+
+
+WITH stats0 AS (
+    SELECT COALESCE(p.player_id,
+                    r.player_id,
+                    c.player_id,
+                    d.player_id,
+                    k.player_id,
+                    t.player_id) AS player_id,
+           COALESCE(p.passing_yards ,0)  AS passing_yards,
+           COALESCE(p.passing_tds   ,0)  AS passing_tds,
+           COALESCE(r.rushing_yards ,0)  AS rushing_yards,
+           COALESCE(r.rushing_tds   ,0)  AS rushing_tds,
+           COALESCE(c.receiving_yards,0) AS receiving_yards,
+           COALESCE(c.receiving_tds ,0)  AS receiving_tds,
+           COALESCE(d.total_tackles ,0)  AS total_tackles,
+           COALESCE(d.sacks         ,0)  AS sacks,
+           COALESCE(d.ints          ,0)  AS ints,
+           COALESCE(k.fgs_made      ,0)  AS fgs_made,
+           COALESCE(t.kick_return_tds ,0) AS kick_return_tds,
+           COALESCE(t.punt_return_tds ,0) AS punt_return_tds
+    FROM v_passing  p
+    FULL JOIN v_rushing   r ON p.player_id = r.player_id
+    FULL JOIN v_receiving c ON COALESCE(p.player_id, r.player_id) = c.player_id
+    FULL JOIN v_defense   d ON COALESCE(p.player_id, r.player_id, c.player_id) = d.player_id
+    FULL JOIN v_kicking   k ON COALESCE(p.player_id, r.player_id, c.player_id, d.player_id) = k.player_id
+    FULL JOIN v_returns   t ON COALESCE(p.player_id, r.player_id, c.player_id, d.player_id, k.player_id) = t.player_id
+),
+position_map AS (
+    SELECT player_id,
+           CASE
+             WHEN passing_yards >= GREATEST(passing_yards,rushing_yards,receiving_yards,sacks,ints,fgs_made,kick_return_tds,punt_return_tds) THEN 1
+             WHEN rushing_yards >= GREATEST(passing_yards,rushing_yards,receiving_yards,sacks,ints,fgs_made,kick_return_tds,punt_return_tds) THEN 2
+             WHEN receiving_yards>=GREATEST(passing_yards,rushing_yards,receiving_yards,sacks,ints,fgs_made,kick_return_tds,punt_return_tds) THEN 3
+             WHEN sacks          >=GREATEST(passing_yards,rushing_yards,receiving_yards,sacks,ints,fgs_made,kick_return_tds,punt_return_tds) THEN 4
+             WHEN ints           >=GREATEST(passing_yards,rushing_yards,receiving_yards,sacks,ints,fgs_made,kick_return_tds,punt_return_tds) THEN 5
+             WHEN fgs_made       >=GREATEST(passing_yards,rushing_yards,receiving_yards,sacks,ints,fgs_made,kick_return_tds,punt_return_tds) THEN 6
+             WHEN kick_return_tds+punt_return_tds >=GREATEST(passing_yards,rushing_yards,receiving_yards,sacks,ints,fgs_made,kick_return_tds,punt_return_tds) THEN 7
+             ELSE 1
+           END AS position_key
+    FROM stats0
+),
+/* ------------ year span (raw tables) ------------ */
+years_span AS (
+    SELECT player_id,
+           CAST(MIN(year) AS STRING) AS y_min,
+           CAST(MAX(year) AS STRING) AS y_max
+    FROM (
+          SELECT player_id, year FROM nfl_passing_silver
+          UNION ALL
+          SELECT player_id, year FROM nfl_rushing_silver
+          UNION ALL
+          SELECT player_id, year FROM nfl_receiving_silver
+          UNION ALL
+          SELECT player_id, year FROM nfl_defensive_silver
+          UNION ALL
+          SELECT player_id, year FROM nfl_kicking_silver
+          UNION ALL
+          SELECT player_id, year FROM nfl_returns_silver
+         ) u
+    GROUP BY player_id
+),
+/* ------------ good years via views ------------ */
+good_years AS (
+    SELECT s.player_id,
+           GREATEST(COALESCE(p.years,0),
+                    COALESCE(r.years,0),
+                    COALESCE(c.years,0),
+                    COALESCE(d.years,0),
+                    COALESCE(k.years,0),
+                    COALESCE(t.years,0)) AS good_years
+    FROM (SELECT DISTINCT player_id FROM stats0) s
+    LEFT JOIN v_passing  p ON s.player_id = p.player_id
+    LEFT JOIN v_rushing  r ON s.player_id = r.player_id
+    LEFT JOIN v_receiving c ON s.player_id = c.player_id
+    LEFT JOIN v_defense  d ON s.player_id = d.player_id
+    LEFT JOIN v_kicking  k ON s.player_id = k.player_id
+    LEFT JOIN v_returns  t ON s.player_id = t.player_id
+),
+/* ---------- team fallback (unchanged) ---------- */
+all_teams AS (
+    SELECT player_id, team FROM nfl_passing_silver
+    UNION ALL
+    SELECT player_id, team FROM nfl_rushing_silver
+    UNION ALL
+    SELECT player_id, team FROM nfl_receiving_silver
+    UNION ALL
+    SELECT player_id, team FROM nfl_defensive_silver
+    UNION ALL
+    SELECT player_id, team FROM nfl_kicking_silver
+    UNION ALL
+    SELECT player_id, team FROM nfl_returns_silver
+),
+best_team AS (
+    SELECT player_id,
+           FIRST_VALUE(team) OVER (PARTITION BY player_id ORDER BY cnt DESC, team) AS team
+    FROM (
+          SELECT player_id, team, COUNT(*) AS cnt
+          FROM all_teams
+          GROUP BY player_id, team
+         ) x
+),
+player_team AS (
+    SELECT CAST(pl.player_id AS INT) AS player_id,
+           COALESCE(pl.current_team, bt.team) AS final_team
+    FROM nfl_players_silver pl
+    LEFT JOIN best_team bt ON pl.player_id = bt.player_id
+)
+/* ---------- final insert ------------*/
+INSERT INTO Fact_Player_Stats
+SELECT
+    s.player_id                                           AS player_key,
+    cd.school                                             AS college_key,
+    td.team_name                                          AS team_key,
+    pm.position_key,
+    s.passing_yards,
+    s.passing_tds,
+    s.rushing_yards,
+    s.rushing_tds,
+    s.receiving_yards,
+    s.receiving_tds,
+    s.total_tackles,
+    s.sacks,
+    s.ints,
+    s.fgs_made,
+    s.kick_return_tds,
+    s.punt_return_tds,
+    CONCAT(COALESCE(ys.y_min,''), '-', COALESCE(ys.y_max,'')) AS years_played,
+    gy.good_years
+FROM stats0 s
+JOIN player_team pt ON s.player_id = pt.player_id
+JOIN nfl_players_silver pl ON s.player_id = CAST(pl.player_id AS INT)
+LEFT JOIN College_Dim cd ON pl.college = cd.school
+LEFT JOIN Teams_Dim td ON pt.final_team = td.team_name
+LEFT JOIN position_map pm ON s.player_id = pm.player_id
+LEFT JOIN good_years gy ON s.player_id = gy.player_id
+LEFT JOIN years_span ys ON s.player_id = ys.player_id;
+
+SELECT 'v_passing'   AS vw, COUNT(*) AS c FROM v_passing   UNION ALL
+SELECT 'v_rushing'   AS vw, COUNT(*) AS c FROM v_rushing   UNION ALL
+SELECT 'v_receiving' AS vw, COUNT(*) AS c FROM v_receiving UNION ALL
+SELECT 'v_defense'   AS vw, COUNT(*) AS c FROM v_defense   UNION ALL
+SELECT 'v_kicking'   AS vw, COUNT(*) AS c FROM v_kicking   UNION ALL
+SELECT 'v_returns'   AS vw, COUNT(*) AS c FROM v_returns;
+
+select * from fact_player_stats where position_key = 7;
+
+select * from players_dim where player_key = 2504773;
+
+
+-- 1.  create new corrected data set
+-- 1.  rows that need fixing
+CREATE TABLE fix_college
+STORED AS ORC
+AS
+SELECT f.player_key,
+       p.college AS college_key
+FROM   Fact_Player_Stats f
+JOIN   nfl_players_silver p
+  ON   CAST(p.player_id AS INT) = f.player_key
+WHERE  f.college_key IS NULL;
+
+-- 2.  overwrite the affected rows
+INSERT OVERWRITE TABLE Fact_Player_Stats
+SELECT /*+ STREAMTABLE(fix_college) */
+       f.player_key,
+       COALESCE(fc.college_key, f.college_key)  AS college_key,
+       f.team_key,
+       f.position_key,
+       f.passing_yards,
+       f.passing_tds,
+       f.rushing_yards,
+       f.rushing_tds,
+       f.receiving_yards,
+       f.receiving_tds,
+       f.total_tackles,
+       f.sacks,
+       f.ints,
+       f.fgs_made,
+       f.kick_return_tds,
+       f.punt_return_tds,
+       f.years_played,
+       f.good_years
+FROM   Fact_Player_Stats f
+LEFT JOIN fix_college fc
+       ON f.player_key = fc.player_key;
+       
+======================================================================
+======================================================================
+=======================================================================
+=======================================================================
+=============create external tables for gold======================================
+======================================================================
+======================================================================
+=====================================================================
+=======================================================================
+
+-- 1.  Positions_Dim  -------------------------------------------------
+CREATE EXTERNAL TABLE positions_dim_ext (
+    position_key INT,
+    name         STRING,
+    difficulty   INT
+)
+STORED AS ORC
+LOCATION 'hdfs:///tmp/DE011025/Joe/gold/positions_dim'
+;
+
+-- 2.  Teams_Dim  ------------------------------------------------------
+CREATE EXTERNAL TABLE teams_dim_ext (
+  team_name string,
+home_stadium string,
+location string,
+lat string,
+long string,
+mascot string,
+live_mascots string,
+conference string,
+division string,
+superbowl_wins string,
+year_est string
+)
+STORED AS ORC
+LOCATION 'hdfs:///tmp/DE011025/Joe/gold/teams_dim'
+;
+
+-- 3.  College_Dim  ----------------------------------------------------
+CREATE EXTERNAL TABLE college_dim_ext (
+   school string,
+state string,
+city string,
+football_attendence int,
+stadium_size int
+)
+STORED AS ORC
+LOCATION 'hdfs:///tmp/DE011025/Joe/gold/college_dim'
+;
+
+-- 4.  Players_Dim  ----------------------------------------------------
+CREATE EXTERNAL TABLE players_dim_ext (
+    player_key     INT,
+    first_name     STRING,
+    last_name      STRING,
+    city           STRING,
+    state          STRING,
+    current_status STRING
+)
+STORED AS ORC
+LOCATION 'hdfs:///tmp/DE011025/Joe/gold/players_dim'
+;
+
+-- 5.  Fact_Player_Stats  ----------------------------------------------
+CREATE EXTERNAL TABLE fact_player_stats_ext (
+    player_key        INT,
+    college_key       STRING,
+    team_key          STRING,
+    position_key      INT,
+    passing_yards     INT,
+    passing_tds       INT,
+    rushing_yards     INT,
+    rushing_tds       INT,
+    receiving_yards   INT,
+    receiving_tds     INT,
+    total_tackles     INT,
+    sacks             INT,
+    ints              INT,
+    fgs_made          INT,
+    kick_return_tds   INT,
+    punt_return_tds   INT,
+    years_played      STRING,
+    good_years        INT
+)
+STORED AS ORC
+LOCATION 'hdfs:///tmp/DE011025/Joe/gold/fact_player_stats'
+;
+
+INSERT INTO positions_dim_ext
+SELECT * FROM positions_dim;
+
+select * from positions_dim_ext;
+
+INSERT INTO college_dim_ext
+SELECT * FROM college_dim;
+
+INSERT INTO teams_dim_ext
+SELECT * FROM teams_dim;
+
+select * from teams_dim_ext;
+
+INSERT INTO players_dim_ext
+SELECT * FROM players_dim;
+
+select * from players_dim_ext;
+
+
+INSERT INTO fact_player_stats_ext
+SELECT * FROM fact_player_stats;
+
+select * from fact_player_stats_ext;
+
+
+
+====================================================================
+
+
+====================================================================
+
+
+======================INCREMENTAL===================================
+
+==================================================================
+
+
+===================================================================
+
+
+CREATE EXTERNAL TABLE nfl_passing_inc
+(player_id string,
+name string,
+position string,
+year string,
+team string,
+games_played string,
+passes_attempted string,
+passes_completed string,
+completion_percentage string,
+pass_attempts_per_game string,
+passing_yards string,
+passing_yards_per_attempt string,
+td_passes string,
+percentage_of_tds_per_attempts string,
+ints string, 
+int_rate string,
+longest_pass string,
+passes_longer_than_20_yards string,
+passes_longer_than_40_yards string,
+sacks string,
+sacked_yards_lost string,
+passer_rating string)
+STORED AS PARQUET
+LOCATION "/tmp/DE011025/Joe/incremental/nfl_passing";
+
+DESCRIBE FORMATTED nfl_passing
+drop table nfl_passing;
+select * from nfl_passing;
+
+
+CREATE EXTERNAL TABLE nfl_rushing_inc
+(player_id string,
+name string,
+postion string,
+year string,
+team string,
+games_played string,
+rushing_attempts string,
+rushing_attempts_per_game string,
+rushing_yards string,
+yards_per_carry string,
+rushing_yards_per_game string,
+rushing_tds string,
+longest_rushing_run string,
+rushing_first_downs string,
+percentage_of_rushing_first string,
+rushing_more_than_20_yards string,
+rushing_more_than_40_yards string,
+fumbles string)
+STORED AS PARQUET
+LOCATION "/tmp/DE011025/Joe/incremental/nfl_rushing";
+
+CREATE EXTERNAL TABLE nfl_receiving_inc
+(player_id string,
+name string,
+position string,
+year string,
+team string,
+games_played string,
+receptions string,
+receiving_yards string,
+yards_per_reception string,
+yards_per_game string,
+longest_reception string,
+receiving_tds string,
+receptions_longer_than_20_yards string,
+receptions_longer_than_40_yards string,
+first_down_receptions string,
+fumbles string)
+STORED AS PARQUET
+LOCATION "/tmp/DE011025/Joe/incremental/nfl_receiving";
+
+CREATE EXTERNAL TABLE nfl_defensive_inc
+(player_id string,
+name string,
+postion string,
+year string,
+team string,
+games_played string,
+total_tackles string,
+solo_tackles string,
+assisted_tackles string,
+sacks string,
+safties string,
+passes_defended string,
+ints string,
+ints_for_tds string,
+int_yards string,
+yards_per_int string,
+longest_int_return string)
+STORED AS PARQUET
+LOCATION "/tmp/DE011025/Joe/incremental/nfl_defensive";
+
+
+CREATE EXTERNAL TABLE nfl_kicking_inc
+(player_id string,
+name string,
+position string,
+year string,
+team string,
+games_played string,
+kicks_blocked string,
+longest_fg_made string,
+fgs_made string,
+fgs_attempted string,
+fg_percentage string,
+fgs_made_2029_yards string,
+fgs_attempted_2029_yards string,
+fgs_percentage_2029_yards string,
+fgs_made_3039_yards string,
+fgs_attempted_3039_yards string,
+fgs_percentage_3039_yards string,
+fgs_made_4049_yards string,
+fgs_attempted_4049_yards string,
+fgs_percentage_4049_yards string,
+fgs_made_50_yards string,
+fgs_attempted_50_yards string,
+fgs_percentage_50_yards string,
+extra_points_attempted string,
+extra_points_made string,
+percentage_of_extra_points string,
+extra_points_blocked string)
+STORED AS PARQUET
+LOCATION "/tmp/DE011025/Joe/incremental/nfl_kicking";
+
+
+CREATE EXTERNAL TABLE nfl_returns_inc
+(player_id string,
+name string,
+position string,
+year string,
+team string,
+games_played string,
+kick_returns string,
+yards_kick_returned string,
+kick_returns_for_tds string,
+punt_returns string,
+yards_punt_returned string,
+punt_returns_for_tds string)
+STORED AS PARQUET
+LOCATION "/tmp/DE011025/Joe/incremental/nfl_returns";
+
+
+CREATE EXTERNAL TABLE nfl_players_inc (
+    age STRING,
+    birth_place STRING,
+    birthday STRING,
+    college STRING,
+    current_status STRING,
+    current_team STRING,
+    experience STRING,
+    height_inches STRING,
+    high_school STRING,
+    name STRING,
+    number STRING,
+    player_id STRING,
+    position STRING,
+    weight_lbs STRING,
+    years_played STRING
+)
+STORED AS PARQUET
+LOCATION '/tmp/DE011025/Joe/incremental/nfl_players';
