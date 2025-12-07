@@ -1,133 +1,107 @@
-import pytest
-from pyspark.sql import SparkSession
 import os
 import sys
-
-# Force Spark workers and driver to use Python3
-PY3 = sys.executable  # the python running pytest (python3.6)
-
-os.environ["PYSPARK_PYTHON"] = PY3
-os.environ["PYSPARK_DRIVER_PYTHON"] = PY3
-
-print("Using Python:", PY3)
-
-from nfl_tranforms_all_for_test import (
-    transform_defensive,
-    transform_kicking,
-    transform_passing,
-    transform_players,
-    transform_receiving,
-    transform_return,
-    transform_rushing
-)
+import datetime
+import pytest
+from pyspark.sql import SparkSession
 
 
-# -------------------------------------------------------------------
-# SparkSession fixture
-# -------------------------------------------------------------------
+# -------------------------------
+# Spark Session Fixture
+# -------------------------------
 @pytest.fixture(scope="session")
 def spark():
-    spark = (
+    return (
         SparkSession.builder
+        .appName("hive-table-tests")
+        .enableHiveSupport()  # enable Hive
         .master("local[*]")
-        .appName("pytest-nfl-all-transforms")
         .getOrCreate()
     )
-    yield spark
-    spark.stop()
 
+# 
+# Hive Table Fixtures
+@pytest.fixture(scope="session")
+def bronze_df(spark):
+    return spark.sql("SELECT * FROM marc_bronze_kick_returns")
 
-# -------------------------------------------------------------------
-# DEFENSIVE TESTS
-# -------------------------------------------------------------------
-def test_defensive_basic(spark):
-    df = spark.createDataFrame(
-        [("abc/123", "Evans, Fred", "10", "200")],
-        ["player_id", "name", "solo_tackles", "total_tackles"]
-    )
-    res = transform_defensive(df).first()
-    assert res.player_id == 123
+@pytest.fixture(scope="session")
+def silver_df(spark):
+    return spark.sql("SELECT * FROM marc_silver_kick_returns")
 
+@pytest.fixture(scope="session")
+def fact_df(spark):
+    return spark.sql("SELECT * FROM marc_gold_kick_return")
 
-# -------------------------------------------------------------------
-# KICKING TESTS
-# -------------------------------------------------------------------
-def test_kicking_basic(spark):
-    df = spark.createDataFrame(
-        [("k/77", "Smith, John", "25", "1975")],
-        ["player_id", "name", "fgs_made", "year"]
-    )
-    res = transform_kicking(df).first()
-    assert res.player_id == 77
+@pytest.fixture(scope="session")
+def dim_player_df(spark):
+    return spark.sql("SELECT * FROM marc_gold_dim_player")
 
+@pytest.fixture(scope="session")
+def dim_team_df(spark):
+    return spark.sql("SELECT * FROM marc_gold_dim_team")
 
-# -------------------------------------------------------------------
-# PASSING TESTS
-# -------------------------------------------------------------------
-def test_passing_filter(spark):
-    df = spark.createDataFrame(
-        [
-            ("id/1", "Doe, Tom", "50", "900"),     # filtered (below 1,000 yards)
-            ("id/2", "Doe, Tim", "50", "2000"),    # should remain
-        ],
-        ["player_id", "name", "passes_attempted", "passing_yards"]
-    )
-    out = transform_passing(df)
-    assert out.count() == 1
+@pytest.fixture(scope="session")
+def dim_year_df(spark):
+    return spark.sql("SELECT * FROM marc_gold_dim_year")
 
+@pytest.fixture(scope="session")
+def fact_dim_joined(spark):
+    return spark.sql("""
+        SELECT f.*, p.*, t.*, y.*
+        FROM marc_gold_kick_return f
+        LEFT JOIN marc_gold_dim_player p ON f.player_key = p.player_key
+        LEFT JOIN marc_gold_dim_team t ON f.team_key = t.team_key
+        LEFT JOIN marc_gold_dim_year y ON f.year_key = y.year_key
+    """)
 
-# -------------------------------------------------------------------
-# PLAYERS TESTS
-# -------------------------------------------------------------------
-def test_players_birthday(spark):
-    df = spark.createDataFrame(
-        [("p/500", "Smith, Jane", "NY, NY", "01/02/1980")],
-        ["player_id", "name", "birth_place", "birthday"]
-    )
-    res = transform_players(df).first()
-    assert str(res.birthday) == "1980-01-02"
+# -------------------------------
+# Tests
+# -------------------------------
+def test_bronze_vs_silver_row_count(bronze_df, silver_df):
+    """Check Bronze and Silver row counts match"""
+    assert bronze_df.count() == silver_df.count(), \
+        f"Silver row count mismatch! Bronze={bronze_df.count()}, Silver={silver_df.count()}"
 
+def test_fact_vs_silver_row_count(fact_df, silver_df):
+    """Check Fact table row count matches Silver"""
+    assert fact_df.count() == silver_df.count(), \
+        f"Fact row count does not match Silver! Fact={fact_df.count()}, Silver={silver_df.count()}"
 
-# -------------------------------------------------------------------
-# RECEIVING TESTS
-# -------------------------------------------------------------------
-def test_receiving_yard_filter(spark):
-    df = spark.createDataFrame(
-        [
-            ("id/1", "Evans, Fred", "10", "800"),   # too low
-            ("id/2", "Evans, Tim", "20", "1500"),   # remains
-        ],
-        ["player_id", "name", "receptions", "receiving_yards"]
-    )
-    out = transform_receiving(df)
-    assert out.count() == 1
+def test_fact_dim_joined_not_empty(fact_dim_joined):
+    """Check joined Fact + Dimensions is not empty"""
+    count = fact_dim_joined.count()
+    assert count > 0, "Joined Fact/Dim table is empty"
+    fact_dim_joined.show(10, truncate=False)
 
+def test_dim_player_has_keys(dim_player_df):
+    """Check player dimension has player_key"""
+    keys = dim_player_df.select("player_key").dropna().count()
+    assert keys > 0, "Player dimension table has no keys"
 
-# -------------------------------------------------------------------
-# RETURN TESTS
-# -------------------------------------------------------------------
-def test_return_td_filter(spark):
-    df = spark.createDataFrame(
-        [
-            ("id/1", "Smith, Joe", "1", "0"),   # rejects punt return td
-            ("id/2", "Smith, Tim", "1", "1"),   # valid
-        ],
-        ["player_id", "name", "kick_returns_for_tds", "punt_returns_for_tds"]
-    )
-    out = transform_return(df)
-    assert out.count() == 1
+def test_dim_team_has_keys(dim_team_df):
+    """Check team dimension has team_key"""
+    keys = dim_team_df.select("team_key").dropna().count()
+    assert keys > 0, "Team dimension table has no keys"
 
+def test_dim_year_has_keys(dim_year_df):
+    """Check year dimension has year_key"""
+    keys = dim_year_df.select("year_key").dropna().count()
+    assert keys > 0, "Year dimension table has no keys"
 
-# -------------------------------------------------------------------
-# RUSHING TESTS
-# -------------------------------------------------------------------
-def test_rushing_yard_filter(spark):
-    df = spark.createDataFrame(
-        [
-            ("id/1", "Doe, A", "20", "900"),   # below threshold
-            ("id/2", "Doe, B", "30", "2000"),  # valid
-        ],
-        ["player_id", "name", "rushing_attempts", "rushing_yards"]
-    )
-    out = transform_rushing(df)
-    assert out.count() == 1
+# # Optional: logging utility
+# def log_df(df, name="output", local=True):
+#     """
+#     Logs a Spark DataFrame to ./outputs/ with timestamped filename.
+#     """
+#     out_dir = os.path.join(os.getcwd(), "outputs")
+#     os.makedirs(out_dir, exist_ok=True)
+#
+#     ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+#     output_path = os.path.join(out_dir, f"{name}_{ts}.csv")
+#
+#     if local:
+#         df.toPandas().to_csv(output_path, index=False)
+#     else:
+#         df.coalesce(1).write.mode("overwrite").option("header", True).csv(output_path)
+#
+#     print(f"[INFO] DataFrame logged to: {output_path}")
