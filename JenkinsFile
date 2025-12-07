@@ -28,7 +28,7 @@ pipeline {
                 """
             }
         }
-
+  /*
         /* -------------------------------------------------
          * 2. Run Sqoop Imports
          * ------------------------------------------------- */
@@ -50,7 +50,7 @@ pipeline {
                 """
             }
         }
-
+*/
         /* -------------------------------------------------
          * 3. Run Spark ETL Scripts
          * ------------------------------------------------- */
@@ -58,7 +58,7 @@ pipeline {
             steps {
                 sh '''
                   echo "Running silver cleaning script..."
-                  spark-submit Incremental/nfl_players_.py
+                  spark-submit Incremental/nfl_players_inc.py
                 '''
             }
         }
@@ -66,7 +66,7 @@ pipeline {
             steps {
                 sh '''
                   echo "Running silver cleaning script..."
-                  spark-submit Incremental/nfl_defensive_.py
+                  spark-submit Incremental/nfl_defensive_inc.py
                 '''
             }
         }
@@ -74,7 +74,7 @@ pipeline {
             steps {
                 sh '''
                   echo "Running silver cleaning script..."
-                  spark-submit Incremental/nfl_kicking_.py
+                  spark-submit Incremental/nfl_kicking_inc.py
                 '''
             }
         }
@@ -82,7 +82,7 @@ pipeline {
             steps {
                 sh '''
                   echo "Running silver cleaning script..."
-                  spark-submit Incremental/nfl_passing_.py
+                  spark-submit Incremental/nfl_passing_inc.py
                 '''
             }
         }
@@ -90,7 +90,7 @@ pipeline {
             steps {
                 sh '''
                   echo "Running silver cleaning script..."
-                  spark-submit Incremental/nfl_receiving_.py
+                  spark-submit Incremental/nfl_receiving_inc.py
                 '''
             }
         }
@@ -98,7 +98,7 @@ pipeline {
             steps {
                 sh '''
                   echo "Running silver cleaning script..."
-                  spark-submit Incremental/nfl_returns_.py
+                  spark-submit Incremental/nfl_returns_inc.py
                 '''
             }
         }
@@ -106,7 +106,7 @@ pipeline {
             steps {
                 sh '''
                   echo "Running silver cleaning script..."
-                  spark-submit Incremental/nfl_rushing_.py
+                  spark-submit Incremental/nfl_rushing_inc.py
                 '''
             }
         }
