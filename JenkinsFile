@@ -12,7 +12,104 @@ pipeline {
         HIVE_FILE          = 'update_fact_player_stats.sql'
     }
 
-   
+    stages {
+
+        /* -------------------------------------------------
+         * 1. Clone repository + verify scripts
+         * ------------------------------------------------- */
+        stage('Checkout Scripts') {
+            steps {
+                git branch: 'Development-Branch',
+                    url: "${GITHUB_REPO}"
+
+                sh """
+                    echo "📁 Listing Python script directory"
+                    ls -la ${PYTHON_SCRIPTS_DIR}
+                """
+            }
+        }
+  
+        /* -------------------------------------------------
+         * 2. Run Sqoop Imports
+         * ------------------------------------------------- */
+        stage('Run Sqoop Imports') {
+            steps {
+                sh """
+                    echo "🚀 Starting Sqoop Imports"
+
+                    for tbl in nfl_players nfl_rushing nfl_receiving nfl_defensive nfl_kicking nfl_passing nfl_returns
+                    do
+                        echo "➡️ Importing table: \$tbl"
+                        sqoop import \
+                            --connect jdbc:postgresql://18.134.163.221:5432/joepostgres \
+                            --username admin --password admin123 \
+                            --table \$tbl -m 1 --as-parquetfile \
+                            --target-dir /tmp/DE011025/Joe/incremental/\$tbl \
+                            --delete-target-dir
+                    done
+                """
+            }
+        }
+
+        /* -------------------------------------------------
+         * 3. Run Spark ETL Scripts
+         * ------------------------------------------------- */
+        stage('Run spark nfl player script') {
+            steps {
+                sh '''
+                  echo "Running incremental script..."
+                  spark-submit Incremental/nfl_players_inc.py
+                '''
+            }
+        }
+        stage('Run spark nfl defensive script') {
+            steps {
+                sh '''
+                  echo "Running incremental script..."
+                  spark-submit Incremental/nfl_defensive_inc.py
+                '''
+            }
+        }
+        stage('Run spark nfl kicking script') {
+            steps {
+                sh '''
+                  echo "Running incremental script..."
+                  spark-submit Incremental/nfl_kicking_inc.py
+                '''
+            }
+        }
+        stage('Run spark nfl passing script') {
+            steps {
+                sh '''
+                  echo "Running incremental script..."
+                  spark-submit Incremental/nfl_passing_inc.py
+                '''
+            }
+        }
+        stage('Run spark nfl receiving script') {
+            steps {
+                sh '''
+                  echo "Running incremental script..."
+                  spark-submit Incremental/nfl_receiving_inc.py
+                '''
+            }
+        }
+        stage('Run spark nfl returns script') {
+            steps {
+                sh '''
+                  echo "Running incremental script..."
+                  spark-submit Incremental/nfl_returns_inc.py
+                '''
+            }
+        }
+        stage('Run spark nfl rushing script') {
+            steps {
+                sh '''
+                  echo "Running incremental script..."
+                  spark-submit Incremental/nfl_rushing_inc.py
+                '''
+            }
+        }
         /* -------------------------------------------------
          * 4. Run Hive SQL script
          * ------------------------------------------------- */
