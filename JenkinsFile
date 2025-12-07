@@ -46,15 +46,14 @@ pipeline {
         /* -------------------------------------------------
          * 3.  Spark scripts from GitHub
          * ------------------------------------------------- */
-        stage('Run Spark Scripts') {
+       stage('Run Spark Scripts') {
             steps {
                 sh '''
                 hdfs dfs -ls /tmp/DE011025/Joe/incremental || { echo "HDFS path missing"; exit 1; }
                 for script in nfl_players nfl_rushing nfl_receiving nfl_defensive nfl_kicking nfl_passing nfl_returns
                 do
-                  sudo -E -u hdfs spark-submit \
-                    --master yarn \
-                    --deploy-mode cluster \
+                  echo "======  $script  ======"
+                  spark-submit --master yarn --deploy-mode client \
                     ${PYTHON_SCRIPTS_DIR}/${script}_inc.py
                 done
                 '''
