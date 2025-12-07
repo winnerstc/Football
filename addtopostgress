@@ -1,0 +1,136 @@
+import psycopg2
+import csv
+import os
+import re
+from io import StringIO  # <-- Added for efficient in-memory file handling
+
+# ---------------------------
+# POSTGRES CONNECTION
+# ---------------------------
+# NOTE: Replace with your actual connection details
+conn = psycopg2.connect(
+    host="18.134.163.221",
+    database="joepostgres",
+    user="admin",
+    password="admin123",
+    port="5432"
+)
+
+
+# ---------------------------
+# CLEAN COLUMN NAMES
+# ---------------------------
+def clean_column_name(col):
+    """Cleans a column name for SQL compatibility."""
+    col = col.strip().lower().replace(" ", "_")
+    # Remove special characters, keeping only letters, numbers, and underscores
+    col = re.sub(r"[^a-z0-9_]", "", col)
+    return col
+
+
+# ---------------------------
+# MAIN LOADER FUNCTION (using copy_expert)
+# ---------------------------
+def load_csv_to_postgres_expert(csv_path, table_name):
+    """
+    Loads a CSV file into a PostgreSQL table using cursor.copy_expert().
+    This method allows for explicit CSV formatting options.
+    """
+    cursor = conn.cursor()
+
+    print(f"\n🚀 Starting load for file: {csv_path}")
+    print(f"Target table: {table_name}")
+
+    if not os.path.exists(csv_path) or os.path.getsize(csv_path) == 0:
+        print("🛑 ERROR: CSV file not found or is empty.")
+        return
+
+    try:
+        # Read the entire CSV file content into memory
+        with open(csv_path, "r", encoding="utf-8", newline="") as f:
+
+            # Use StringIO to act as a file handle for copy_expert
+            # We must read the file into this buffer first.
+            data_buffer = StringIO(f.read())
+
+            # ---------------------------
+            # 1. READ HEADER AND CLEAN
+            # ---------------------------
+            # Reset buffer to start for header read
+            data_buffer.seek(0)
+            reader = csv.reader(data_buffer)
+
+            try:
+                header = next(reader)
+            except StopIteration:
+                print("🛑 ERROR: CSV has no header.")
+                return
+
+            # Clean header names for SQL
+            cleaned_header = [clean_column_name(c) for c in header]
+            columns_list_sql = ", ".join([f'"{col}"' for col in cleaned_header])  # Quoting columns in SQL for safety
+
+            # ---------------------------
+            # 2. CREATE TABLE
+            # ---------------------------
+            columns_sql = ", ".join([f"{col} TEXT" for col in cleaned_header])
+
+            create_statement = f"""
+                CREATE TABLE IF NOT EXISTS {table_name} (
+                    {columns_sql}
+                );
+            """
+            cursor.execute(create_statement)
+            conn.commit()
+            print("✅ Table created or already exists.")
+
+            # ---------------------------
+            # 3. USE copy_expert TO INSERT DATA
+            # ---------------------------
+            # Reset the buffer to the beginning of the content
+            data_buffer.seek(0)
+
+            print("⏳ Inserting data...")
+
+            # Define the full COPY command with explicit CSV formatting
+            # FORMAT CSV: Tells Postgres to handle quoting and escaping like a CSV
+            # QUOTE '"': Specifies the quote character
+            # HEADER: Tells Postgres to skip the first row (the header)
+            copy_command = f"""
+                COPY {table_name} ({columns_list_sql})
+                FROM STDIN
+                WITH (FORMAT CSV, DELIMITER ',', QUOTE '"', HEADER TRUE, NULL '');
+            """
+
+            cursor.copy_expert(copy_command, data_buffer)
+
+            conn.commit()
+
+            row_count = cursor.rowcount
+            print(f"🎉 SUCCESS → Loaded {row_count} rows into '{table_name}' using copy_expert.")
+
+    except psycopg2.Error as e:
+        conn.rollback()
+        print(f"🛑 POSTGRES ERROR: {e}")
+        # The previous 'extra data' error would have shown up here
+    except Exception as e:
+        print(f"🛑 GENERAL ERROR: {e}")
+    finally:
+        if 'cursor' in locals() and cursor:
+            cursor.close()
+
+
+# ---------------------------
+# EXECUTE
+# ---------------------------
+if __name__ == "__main__":
+    # ⚠️ CHANGE THIS PART FOR EACH FILE YOU LOAD
+    csv_file_path = r"C:\Users\Joseph Davis\Documents\uttam\College Football - Sheet1 (4).csv"
+    table_name = "college_teams"
+
+    load_csv_to_postgres_expert(csv_file_path, table_name)
+
+    # Close the database connection
+    if conn:
+        conn.close()
+        print("\nDisconnected from PostgreSQL.")
