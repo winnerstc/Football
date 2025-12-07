@@ -1,8 +1,5 @@
 
-select * from nfl_defensive_inc where year = '2017';
-select * from nfl_defensive_silver where year = 2017;
-select * from players_dim;
-select count(*) from nfl_players;
+
 
 CREATE EXTERNAL TABLE nfl_passing
 (player_id string,
