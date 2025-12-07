@@ -5,7 +5,7 @@ pipeline {
     environment {
         HADOOP_USER_NAME   = 'hdfs'
         GITHUB_REPO        = 'https://github.com/winnerstc/Football.git'
-        PYTHON_SCRIPTS_DIR = 'Incremental'   // folder inside the repo
+        PYTHON_SCRIPTS_DIR = 'Incremental'
         HIVE_JDBC_URL      = 'jdbc:hive2://ip-172-31-3-80.eu-west-2.compute.internal:10000/joepostgres'
         HIVE_USER          = 'admin'
         HIVE_PASSWORD      = 'admin123'
@@ -13,69 +13,86 @@ pipeline {
     }
 
     stages {
+
         /* -------------------------------------------------
-         * 1.  pull scripts from GitHub
+         * 1. Clone repository + verify scripts
          * ------------------------------------------------- */
         stage('Checkout Scripts') {
             steps {
                 git branch: 'Development-Branch',
                     url: "${GITHUB_REPO}"
-                sh 'ls -la ${PYTHON_SCRIPTS_DIR}   # sanity check'
+
+                sh """
+                    echo "📁 Listing Python script directory"
+                    ls -la ${PYTHON_SCRIPTS_DIR}
+                """
             }
         }
 
         /* -------------------------------------------------
-         * 2.  Sqoop imports (your existing commands)
+         * 2. Run Sqoop Imports
          * ------------------------------------------------- */
         stage('Run Sqoop Imports') {
             steps {
-                sh '''
-                for tbl in nfl_players nfl_rushing nfl_receiving nfl_defensive nfl_kicking nfl_passing nfl_returns
-                do
-                  sqoop import \
-                    --connect jdbc:postgresql://18.134.163.221:5432/joepostgres \
-                    --username admin --password admin123 \
-                    --table $tbl -m 1 --as-parquetfile \
-                    --target-dir /tmp/DE011025/Joe/incremental/$tbl \
-                    --delete-target-dir
-                done
-                '''
+                sh """
+                    echo "🚀 Starting Sqoop Imports"
+
+                    for tbl in nfl_players nfl_rushing nfl_receiving nfl_defensive nfl_kicking nfl_passing nfl_returns
+                    do
+                        echo "➡️ Importing table: \$tbl"
+                        sqoop import \
+                            --connect jdbc:postgresql://18.134.163.221:5432/joepostgres \
+                            --username admin --password admin123 \
+                            --table \$tbl -m 1 --as-parquetfile \
+                            --target-dir /tmp/DE011025/Joe/incremental/\$tbl \
+                            --delete-target-dir
+                    done
+                """
             }
         }
 
         /* -------------------------------------------------
-         * 3.  Spark scripts from GitHub
+         * 3. Run Spark ETL Scripts
          * ------------------------------------------------- */
-       stage('Run Spark Scripts') {
+        stage('Run Spark Scripts') {
             steps {
-                sh '''
-                hdfs dfs -ls /tmp/DE011025/Joe/incremental || { echo "HDFS path missing"; exit 1; }
-                for script in nfl_players nfl_rushing nfl_receiving nfl_defensive nfl_kicking nfl_passing nfl_returns
-                do
-                  echo "======  $script  ======"
-                  spark-submit --master local[*] \
-                    ${PYTHON_SCRIPTS_DIR}/${script}_inc.py
-                done
-                '''
+                sh """
+                    echo "🔍 Checking HDFS incremental directory"
+                    hdfs dfs -ls /tmp/DE011025/Joe/incremental || { echo '❌ HDFS path missing'; exit 1; }
+
+                    echo "🚀 Running Spark Jobs"
+                    for script in nfl_players nfl_rushing nfl_receiving nfl_defensive nfl_kicking nfl_passing nfl_returns
+                    do
+                        echo "====== Running Spark Script: \$script ======"
+                        spark-submit --master local[*] \
+                            ${PYTHON_SCRIPTS_DIR}/\${script}_inc.py
+                    done
+                """
             }
         }
 
         /* -------------------------------------------------
-         * 4.  Hive update
+         * 4. Run Hive SQL script
          * ------------------------------------------------- */
         stage('Run Hive SQL Script') {
             steps {
                 sh """
-                beeline -u \"${HIVE_JDBC_URL}\" \
-                  -n ${HIVE_USER} -p ${HIVE_PASSWORD} \
-                  -f ${HIVE_FILE}
+                    echo "🛢 Running Hive SQL file ${HIVE_FILE}"
+
+                    beeline -u "${HIVE_JDBC_URL}" \
+                        -n ${HIVE_USER} -p ${HIVE_PASSWORD} \
+                        -f ${HIVE_FILE}
                 """
             }
         }
     }
 
     post {
-        success { echo '🎉 Pipeline finished' }
-        failure { echo '❌ Pipeline failed – see logs above' }
+        success {
+            echo '🎉 Pipeline finished successfully!'
+        }
+        failure {
+            echo '❌ Pipeline failed – check the logs above.'
+        }
     }
 }
