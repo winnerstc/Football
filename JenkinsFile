@@ -47,13 +47,13 @@ pipeline {
         stage('Run Spark Scripts') {
             steps {
                 sh """
-                spark-submit ${PYTHON_SCRIPTS_DIR}/nfl_players_incremental.py
-                spark-submit ${PYTHON_SCRIPTS_DIR}/nfl_rushing_incremental.py
-                spark-submit ${PYTHON_SCRIPTS_DIR}/nfl_receiving_incremental.py
-                spark-submit ${PYTHON_SCRIPTS_DIR}/nfl_defensive_incremental.py
-                spark-submit ${PYTHON_SCRIPTS_DIR}/nfl_kicking_incremental.py
-                spark-submit ${PYTHON_SCRIPTS_DIR}/nfl_passing_incremental.py
-                spark-submit ${PYTHON_SCRIPTS_DIR}/nfl_returns_incremental.py
+                spark-submit ${PYTHON_SCRIPTS_DIR}/nfl_players_inc.py
+                spark-submit ${PYTHON_SCRIPTS_DIR}/nfl_rushing_inc.py
+                spark-submit ${PYTHON_SCRIPTS_DIR}/nfl_receiving_inc.py
+                spark-submit ${PYTHON_SCRIPTS_DIR}/nfl_defensive_inc.py
+                spark-submit ${PYTHON_SCRIPTS_DIR}/nfl_kicking_inc.py
+                spark-submit ${PYTHON_SCRIPTS_DIR}/nfl_passing_inc.py
+                spark-submit ${PYTHON_SCRIPTS_DIR}/nfl_returns_inc.py
                 """
             }
         }
