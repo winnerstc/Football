@@ -1,23 +1,4 @@
--- 🛠 0. SETTING ENVIRONMENT/OPTIMIZATION FLAGS (CRITICAL FOR JENKINS RELIABILITY)
--- Force Tez as the execution engine (usually more stable for complex queries)
-SET hive.execution.engine=tez; 
--- Increase YARN container memory (adjust based on cluster resources)
-SET hive.tez.container.size=4096;      -- Sets container to 4GB
-SET hive.tez.java.opts=-Xmx3276m;      -- Sets Java Heap to ~80% of container
--- Allow larger tables for automatic MapJoin conversion (improves join speed)
-SET hive.auto.convert.join.noconditionaltask=true;
-SET hive.auto.convert.join.noconditionaltask.size=300000000; -- ~300 MB
 
--- 📊 1. ANALYZE TABLES (CRITICAL FOR AVOIDING SPARSE EXCEPTION)
--- This generates statistics needed by the Hive optimizer to plan the complex joins.
-ANALYZE TABLE nfl_passing_silver COMPUTE STATISTICS FOR COLUMNS;
-ANALYZE TABLE nfl_rushing_silver COMPUTE STATISTICS FOR COLUMNS;
-ANALYZE TABLE nfl_receiving_silver COMPUTE STATISTICS FOR COLUMNS;
-ANALYZE TABLE nfl_defensive_silver COMPUTE STATISTICS FOR COLUMNS;
-ANALYZE TABLE nfl_kicking_silver COMPUTE STATISTICS FOR COLUMNS;
-ANALYZE TABLE nfl_returns_silver COMPUTE STATISTICS FOR COLUMNS;
-ANALYZE TABLE nfl_players_silver COMPUTE STATISTICS FOR COLUMNS;
--- -----------------------------------------------------------------------------
 
 
 --------------Drop fact table-------------
