@@ -1,101 +1,85 @@
-
-
+# -*- coding: utf-8 -*-
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, regexp_replace, split, trim, when, size
 from pyspark.sql.types import IntegerType
 
-# --- Spark Session Setup ---
 spark = SparkSession.builder \
-    .appName("NFLReturnsIncrementalToSilver") \
-    .enableHiveSupport() \
-    .getOrCreate()
+    .appName("NFLReturnsIncrementalToSilver") \
+    .enableHiveSupport() \
+    .getOrCreate()
 
 spark.sql("USE joepostgres")
 
-# --- Configuration ---
-bronze_table = "nfl_returns"
-inc_source_table = "nfl_returns_inc"
-silver_path = "hdfs:///tmp/DE011025/Joe/silver/nfl_returns_output"
+# ---------- config ----------
+BRONZE_TBL   = "nfl_returns"
+INC_SOURCE   = "nfl_returns_inc"
+SILVER_PATH  = "hdfs:///tmp/DE011025/Joe/silver/nfl_returns_output"
 
-# Load current target count (nfl_returns)
-bronze_df = spark.sql(f"SELECT * FROM {bronze_table}")
-bronze_count = bronze_df.count()
+# ---------- count check ----------
+bronze_df  = spark.sql("SELECT * FROM {}".format(BRONZE_TBL))
+bronze_cnt = bronze_df.count()
 
-# Load new source count (nfl_returns_inc)
 try:
-    inc_df = spark.sql(f"SELECT * FROM {inc_source_table}")
-    inc_count = inc_df.count()
+    inc_df = spark.sql("SELECT * FROM {}".format(INC_SOURCE))
+    inc_cnt = inc_df.count()
 except Exception:
-    inc_count = 0
+    inc_cnt = 0
 
-print(f"[RETURNS] bronze_count={bronze_count}, inc_count={inc_count}")
+print("[RETURNS] bronze_cnt={}, inc_cnt={}".format(bronze_cnt, inc_cnt))
 
-# --- Conditional Processing ---
-if bronze_count < inc_count:
-    print("[RETURNS] New data detected. Rebuilding silver and updating bronze count checkpoint...")
+# ---------- rebuild only if new data ----------
+if bronze_cnt < inc_cnt:
+    print("[RETURNS] New data detected – rebuilding silver & bronze.")
 
-    df = inc_df # Start with the incremental source data
+    df = inc_df
 
-    for c, t in df.dtypes:
-        if t == "string":
-            df = df.withColumn(c, trim(col(c)))
+    # 1. trim strings
+    for c, t in df.dtypes:
+        if t == "string":
+            df = df.withColumn(c, trim(col(c)))
 
-    dash_cols = [
-        "kick_returns",
-        "yards_kick_returned",
-        "kick_returns_for_tds",
-        "punt_returns",
-        "yards_punt_returned",
-        "punt_returns_for_tds"
-    ]
+    # 2. placeholders
+    dash_cols = ["kick_returns", "yards_kick_returned", "kick_returns_for_tds",
+                 "punt_returns", "yards_punt_returned", "punt_returns_for_tds"]
+    df = df.replace("--", "0", subset=dash_cols).replace("", None)
 
-    df = df.replace("--", "0", subset=dash_cols)
-    df = df.replace("", None)
+    # 3. de-dup
+    df = df.dropDuplicates()
 
-    df = df.dropDuplicates()
+    # 4. player_id numeric
+    df = df.withColumn(
+        "player_id",
+        regexp_replace(col("player_id"), ".*?/", "").cast(IntegerType())
+    )
 
-    df = df.withColumn(
-        "player_id",
-        regexp_replace(col("player_id"), ".*?/", "").cast(IntegerType())
-    )
+    # 5. split name
+    df = (df.withColumn("name_split", split(col("name"), ", "))
+          .withColumn("last_name",  col("name_split").getItem(0))
+          .withColumn("first_name",
+                      when(size(col("name_split")) > 1,
+                           col("name_split").getItem(1)).otherwise(None)))
+    df = df.filter(col("first_name").isNotNull())
 
-    df = df.withColumn("name_split", split(col("name"), ", "))
-    df = df.withColumn("last_name", col("name_split")[0])
-    df = df.withColumn(
-        "first_name",
-        when(size(col("name_split")) > 1, col("name_split")[1]).otherwise(None)
-    )
+    # 6. integer columns
+    for c in dash_cols:
+        df = (df.withColumn(c, regexp_replace(col(c), ",", ""))
+               .withColumn(c, col(c).cast(IntegerType())))
 
-    df = df.filter(col("first_name").isNotNull())
+    # 7. filters
+    df = df.filter(col("kick_returns_for_tds") >= 1)
+    df = df.filter(col("punt_returns_for_tds") >= 1)
+    df = df.filter(col("year").cast(IntegerType()) >= 1970)
 
-    # Cast integer columns after replacing non-numeric characters
-    for c in dash_cols:
-        df = df.withColumn(c, regexp_replace(col(c), ",", ""))
-        df = df.withColumn(c, col(c).cast(IntegerType()))
+    # 8. drop unused
+    df = df.drop("name", "name_split")
 
-    # Filters (Ensure filtering logic is correct using the original column types/names)
-    df = df.filter(col("kick_returns_for_tds") >= 1) # Already cast to IntegerType above
-    df = df.filter(col("punt_returns_for_tds") >= 1) # Already cast to IntegerType above
+    # ---------- 9.  WRITE ----------
+    df.write.mode("overwrite").parquet(SILVER_PATH)
+    spark.sql("INSERT OVERWRITE TABLE joepostgres.{} SELECT * FROM joepostgres.{}"
+              .format(BRONZE_TBL, INC_SOURCE))
 
-    df = df.filter(col("year").cast(IntegerType()) >= 1970)
-
-    df = df.drop(
-        "name",
-        "name_split"
-    )
-
-    # --- FINAL WRITE OPERATIONS ---
-    
-    # 1. Write the CLEANED data (df) to the Silver Path (final output)
-    df.write.mode("overwrite").parquet(silver_path)
-
-    print("[RETURNS] Silver refreshed.")
-
-    # 2. Overwrite the Bronze Table (nfl_returns) with the RAW data (inc_df)
-    # Using INSERT OVERWRITE TABLE guarantees a full replacement, fixing the count issue.
-    spark.sql(f"INSERT OVERWRITE TABLE joepostgres.{bronze_table} SELECT * FROM joepostgres.{inc_source_table}")
-
+    print("[RETURNS] Silver & bronze updated.")
 else:
-    print("[RETURNS] No new data. Skipping.")
+    print("[RETURNS] No new data – skipping.")
 
 spark.stop()
