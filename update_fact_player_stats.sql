@@ -122,7 +122,7 @@ position_map AS (
            END AS position_key
     FROM stats0
 ),
-/* ------------ year span (raw tables) ------------ */
+ ------------ year span (raw tables) ------------ 
 years_span AS (
     SELECT player_id,
            CAST(MIN(year) AS STRING) AS y_min,
