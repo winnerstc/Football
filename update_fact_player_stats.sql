@@ -127,21 +127,21 @@ years_span AS (
     SELECT player_id,
            CAST(MIN(year) AS STRING) AS y_min,
            CAST(MAX(year) AS STRING) AS y_max
-    FROM (
-          SELECT player_id, year FROM nfl_passing_silver
-          UNION ALL
-          SELECT player_id, year FROM nfl_rushing_silver
-          UNION ALL
-          SELECT player_id, year FROM nfl_receiving_silver
-          UNION ALL
-          SELECT player_id, year FROM nfl_defensive_silver
-          UNION ALL
-          SELECT player_id, year FROM nfl_kicking_silver
-          UNION ALL
-          SELECT player_id, year FROM nfl_returns_silver
-         ) u
-    GROUP BY player_id
-),
+           FROM (
+                 SELECT player_id, year FROM nfl_passing_silver
+                 UNION ALL
+                 SELECT player_id, year FROM nfl_rushing_silver
+                 UNION ALL
+                 SELECT player_id, year FROM nfl_receiving_silver
+                 UNION ALL
+                 SELECT player_id, year FROM nfl_defensive_silver
+                 UNION ALL
+                 SELECT player_id, year FROM nfl_kicking_silver
+                 UNION ALL
+                 SELECT player_id, year FROM nfl_returns_silver
+                ) u
+           GROUP BY player_id
+       ),
 /* ------------ good years via views ------------ */
 good_years AS (
     SELECT s.player_id,
