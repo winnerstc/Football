@@ -15,8 +15,8 @@ spark.sql("USE joepostgres")
 # --- Configuration ---
 bronze_table = "nfl_players"        
 inc_source_table = "nfl_players_inc" 
-silver_path = "hdfs:///tmp/DE011025/Joe/silver/nfl_players_output" # Final Output Path for Cleaned Data
-bronze_path="hdfs:///tmp/DE011025/Joe/raw/nfl_players" # Commented out as it's not used in SQL logic
+silver_path = "hdfs:///tmp/DE011025/Joe/silver/nfl_players_output"
+bronze_path="hdfs:///tmp/DE011025/Joe/raw/nfl_players" 
 
 
 # Load current target count (nfl_players)
