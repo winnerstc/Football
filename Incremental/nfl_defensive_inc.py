@@ -12,8 +12,8 @@ spark.sql("SHOW DATABASES").show(truncate=False)
 spark.sql("USE joepostgres")
 
 # --- Configuration ---
-bronze_table = "nfl_defensive"         # Target Table (Used for COUNT CHECKPOINT - stores RAW data)
-inc_source_table = "nfl_defensive_inc" # Source Table (New Raw Data)
+bronze_table = "nfl_defensive"         
+inc_source_table = "nfl_defensive_inc" 
 silver_path = "hdfs:///tmp/DE011025/Joe/silver/nfl_defensive_output" # Final Output Path for Cleaned Data
 
 # Load current target count (nfl_defensive)
