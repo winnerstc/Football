@@ -90,6 +90,9 @@ pipeline {
         stage('Run Unit Tests') {
             steps {
                 sh """
+
+                    export PYSPARK_PYTHON=/usr/bin/python3
+                    export PYSPARK_DRIVER_PYTHON=/usr/bin/python3
                     echo '🧪 Running Full Test Suite...'
                     python3 -m pytest 'unit tests/full_test_nfl_21_tests.py'
 
