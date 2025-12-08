@@ -155,6 +155,22 @@ pipeline {
                     '''
                 }
             }
+        stage('Run Full Unit Test Script') {
+                steps {
+                    sh '''
+            
+                        pytest 'unit tests/full_test_nfl_21_tests.py'
+                    '''
+                }
+            }
+        stage('Run All 7 Unit Test Script') {
+                steps {
+                    sh '''
+            
+                        pytest 'unit tests/test_all_7_transforms.py'
+                    '''
+                }
+            }
         /* -------------------------------------------------
          * 4. Run Hive SQL script
          * ------------------------------------------------- */
