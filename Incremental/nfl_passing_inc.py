@@ -15,7 +15,7 @@ spark.sql("USE joepostgres")
 
 # ---------- 2.  Config ----------
 BRONZE_TBL   = "nfl_passing"
-INC_SOURCE   = "nfl_passing_inc"          # parquet you just landed
+INC_SOURCE   = "nfl_passing_inc"         
 SILVER_PATH  = "hdfs:///tmp/DE011025/Joe/silver/nfl_passing_output"
 
 # ---------- 3.  row-count check ----------
