@@ -158,16 +158,15 @@ pipeline {
         /* -------------------------------------------------
          * 4. Run Hive SQL script
          * ------------------------------------------------- */
-        stage('Run Hive SQL Script') {
+     stage('Run Hive SQL Script') {
                 steps {
                     sh '''
                     echo "🛢 Sanity-check SQL file"
                     wc -l "${HIVE_FILE}"
                     tail -10 "${HIVE_FILE}" || { echo "❌ SQL file missing/truncated"; exit 1; }
-            
-                    echo "🛢 Running Hive SQL file ${HIVE_FILE}"
+                    
+                    echo "🛢 Running Hive SQL file ${HIVE_FILE} (Running as HDFS user via HADOOP_USER_NAME)"
                     beeline -u "${HIVE_JDBC_URL}" \
-                        -n ${HIVE_USER} -p ${HIVE_PASSWORD} \
                         -f "${HIVE_FILE}"
                     '''
                 }
