@@ -20,8 +20,7 @@ pipeline {
          * ------------------------------------------------- */
         stage('Checkout Scripts') {
             steps {
-                sh 'echo "=== ENVIRONMENT VARIABLES ==="'
-                 sh 'env | sort'
+                
                 git branch: 'Development-Branch',
                     url: "${GITHUB_REPO}"
 
@@ -59,6 +58,8 @@ pipeline {
          * ------------------------------------------------- */
         stage('Run spark nfl player script') {
             steps {
+                sh 'echo "=== ENVIRONMENT VARIABLES ==="'
+                 sh 'env | sort'
                 sh '''
                   echo "Running incremental script..."
                   spark-submit Incremental/nfl_players_inc.py
