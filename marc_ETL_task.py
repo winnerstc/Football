@@ -25,6 +25,7 @@ import os
 import json
 from pyspark.sql import SparkSession
 
+memory_stats = []
 max_mem = 0
 max_cpu = 0
 monitoring = True
@@ -42,9 +43,14 @@ def monitor_resources(interval=0.5):
             max_cpu = cpu
         time.sleep(interval)
 
+def log_memory(action_name):
+    mem = psutil.Process().memory_info().rss / (1024 * 1024)
+    memory_stats.append(mem)
+    print(f"[MEMORY] {action_name}: {mem:.2f} MB")
 
+# Validate CLI arguments
 if len(sys.argv) < 2:
-    raise ValueError("Usage: spark-submit marc_ETL_task.py [1|0]")
+    raise ValueError("Usage: spark-submit marc_ETL_task.py [1|0] [0|1 for Gold CSV/Parquet]")
 
 # Set LOCAL=True to test with local node, False to use HDFS cluster
 LOCAL = int(sys.argv[1].strip())
@@ -100,15 +106,17 @@ bronze_path = "hdfs:///tmp/DE011025/marc/raw/"
 silver_path = "hdfs:///tmp/DE011025/marc/silver/"
 gold_path_base = "hdfs:///tmp/DE011025/marc/gold/"
 
-# Read raw source data from csv if local is true else update HIVE table definitions and read from HDFS
+# Read raw source data from csv if local is true else HIVE tables
 if LOCAL:
     csv_file = "Career_Stats_Kick_Return.csv"
     staging_df = spark.read \
-        .option("header", "true") \
+        .option("header", True) \
+        .option("quote", "\"") \
+        .option("escape", "\"") \
+        .option("multiLine", True) \
         .schema(kick_returns_schema) \
         .csv(csv_file)
 else:
-    # Helper function to recreate tables
     def recreate_table(table_name, ddl):
         print(f"Recreating table: {table_name}")
         spark.sql(f"DROP TABLE IF EXISTS {table_name}")
@@ -189,12 +197,31 @@ else:
     gold_dim_team_path = f"{gold_path_base}/dim_team/"
     gold_dim_year_path = f"{gold_path_base}/dim_year/"
 
+    GOLD_WRITE = int(sys.argv[2].strip())
+    # Gold output format choices: 0 for CSV, 1 for Parquet
+    if GOLD_WRITE == 1:
+        output_format = "parquet"
+    else:
+        output_format = "csv"
+
+    # Build storage DDL fragments based on chosen format
+    if output_format == "parquet":
+        gold_storage_fragment = "STORED AS PARQUET"
+    else:
+        # CSV / TEXTFILE
+        gold_storage_fragment = (
+            "ROW FORMAT DELIMITED\n"
+            "FIELDS TERMINATED BY ','\n"
+            "STORED AS TEXTFILE\n"
+            "TBLPROPERTIES (\"skip.header.line.count\"=\"1\")"
+        )
+
     # FACT TABLE
     marc_gold_kick_returns = "marc_gold_kick_returns"
     recreate_table(
         marc_gold_kick_returns,
         f"""
-        CREATE EXTERNAL TABLE IF NOT EXISTS marc_gold_kick_returns (
+        CREATE EXTERNAL TABLE IF NOT EXISTS {marc_gold_kick_returns} (
             player_key INT,
             team_key INT,
             year_key INT,
@@ -212,13 +239,13 @@ else:
             weighted_return_score DOUBLE,
             cumulative_yards DOUBLE
         )
-        STORED AS PARQUET
+        {gold_storage_fragment}
         LOCATION '{gold_fact_path}'
         """
     )
 
+    # DIM PLAYER
     marc_gold_dim_player = "marc_gold_dim_player"
-    # DIM PLAYER TABLE
     recreate_table(
         marc_gold_dim_player,
         f"""
@@ -236,13 +263,13 @@ else:
             avg_yards_per_year DOUBLE,
             avg_returns_per_year DOUBLE
         )
-        STORED AS PARQUET
+        {gold_storage_fragment}
         LOCATION '{gold_dim_player_path}'
         """
     )
 
+    # DIM TEAM
     marc_gold_dim_team = "marc_gold_dim_team"
-    # DIM TEAM TABLE
     recreate_table(
         marc_gold_dim_team,
         f"""
@@ -250,55 +277,92 @@ else:
             team_key INT,
             team_std STRING
         )
-        STORED AS PARQUET
+        {gold_storage_fragment}
         LOCATION '{gold_dim_team_path}'
         """
     )
 
+    # DIM YEAR
     marc_gold_dim_year = "marc_gold_dim_year"
-    # DIM YEAR TABLE
     recreate_table(
-        {marc_gold_dim_year},
+        marc_gold_dim_year,
         f"""
         CREATE EXTERNAL TABLE IF NOT EXISTS {marc_gold_dim_year} (
             year_key INT,
             year INT
         )
-        STORED AS PARQUET
+        {gold_storage_fragment}
         LOCATION '{gold_dim_year_path}'
         """
     )
 
     staging_df = spark.read \
         .option("header", "true") \
+        .option("quote", "\"") \
+        .option("escape", "\"") \
+        .option("multiLine", "true") \
         .schema(kick_returns_schema) \
         .csv(bronze_path)
 
 # Bronze → Silver transformation
-clean_df = staging_df \
-    .withColumn("team_std", upper(trim(col("team")))) \
-    .withColumn("fair_catches_clean", coalesce(col("fair_catches"), lit(0))) \
-    .withColumn("returns_clean", coalesce(col("returns"), lit(0))) \
-    .withColumn("yards_returned_clean", coalesce(col("yards_returned"), lit(0))) \
-    .withColumn("yards_per_return_clean", coalesce(col("yards_per_return"), lit(0))) \
-    .withColumn("returns_longer_20_clean", coalesce(col("returns_longer_20"), lit(0))) \
-    .withColumn("returns_longer_40_clean", coalesce(col("returns_longer_40"), lit(0))) \
-    .withColumn("returns_for_tds_clean", coalesce(col("returns_for_tds"), lit(0))) \
-    .withColumn("fumbles_clean", coalesce(col("fumbles"), lit(0))) \
-    .withColumn("longest_return_clean", coalesce(col("longest_return"), lit(0))) \
-    .withColumn("long_return_flag", when(col("longest_return") > 40, 1).otherwise(0)) \
+clean_df = (
+    staging_df
+    .withColumn("team_std", upper(trim(col("team"))))
+    .withColumn("fair_catches_clean", coalesce(col("fair_catches"), lit(0)))
+    .withColumn("returns_clean", coalesce(col("returns"), lit(0)))
+    .withColumn("yards_returned_clean", coalesce(col("yards_returned"), lit(0)))
+    .withColumn("yards_per_return_clean", coalesce(col("yards_per_return"), lit(0)))
+    .withColumn("returns_longer_20_clean", coalesce(col("returns_longer_20"), lit(0)))
+    .withColumn("returns_longer_40_clean", coalesce(col("returns_longer_40"), lit(0)))
+    .withColumn("returns_for_tds_clean", coalesce(col("returns_for_tds"), lit(0)))
+    .withColumn("fumbles_clean", coalesce(col("fumbles"), lit(0)))
+    .withColumn("longest_return_clean", coalesce(col("longest_return"), lit(0)))
+    .withColumn("long_return_flag", when(col("longest_return") > 40, 1).otherwise(0))
     .withColumn("position_std", upper(trim(col("position"))))
+)
+
+# enforce correct column order for Silver table
+silver_column_order = [
+    "team_std",
+    "fair_catches_clean",
+    "returns_clean",
+    "yards_returned_clean",
+    "yards_per_return_clean",
+    "returns_longer_20_clean",
+    "returns_longer_40_clean",
+    "returns_for_tds_clean",
+    "fumbles_clean",
+    "longest_return_clean",
+    "long_return_flag",
+    "position_std",
+    "player_id",
+    "name",
+    "position",
+    "year",
+    "team",
+    "games_played",
+    "returns",
+    "yards_returned",
+    "yards_per_return",
+    "longest_return",
+    "returns_for_tds",
+    "returns_longer_20",
+    "returns_longer_40"
+]
+clean_df = clean_df.select(*silver_column_order)
+log_memory("After Bronze→Silver cleaning (clean_df)")
 
 # Optionally write Bronze/Silver if not LOCAL
 if not LOCAL:
     staging_df.write.mode("overwrite")
-    clean_df.write.mode("overwrite")
+    clean_df.write.mode("overwrite").parquet(silver_path)
 
-# Continue with Dim/Fact tables (same logic as before)
+# Create Dim/Fact tables with deterministic ordering and keys
 window_player = Window.orderBy("player_id")
 window_team = Window.orderBy("team_std")
 window_year = Window.orderBy("year")
 
+# Player aggregates
 player_agg = clean_df.groupBy("player_id", "name", "position_std") \
     .agg(
         _min("year").alias("debut_year"),
@@ -306,22 +370,41 @@ player_agg = clean_df.groupBy("player_id", "name", "position_std") \
         _sum("yards_returned_clean").alias("total_yards"),
         _sum("returns_clean").alias("total_returns")
     )
-
 player_metrics = player_agg.withColumn("career_span", col("last_year") - col("debut_year") + 1) \
     .withColumn("rookie_numeric", when(col("career_span") == 1, 1).otherwise(0)) \
     .withColumn("avg_yards_per_year", _round(col("total_yards") / when(col("career_span") == 0, 1).otherwise(col("career_span")), 2)) \
     .withColumn("avg_returns_per_year", _round(col("total_returns") / when(col("career_span") == 0, 1).otherwise(col("career_span")), 2))
 
-dim_player = player_metrics.withColumn("player_key", row_number().over(window_player))
-dim_team = clean_df.select("team_std").distinct().withColumn("team_key", row_number().over(window_team))
-dim_year = clean_df.select("year").distinct().withColumn("year_key", row_number().over(window_year))
+# Ensure dim_player columns are in exact order of table schema:
+dim_player = player_metrics.withColumn("player_key", row_number().over(window_player)) \
+    .select(
+        "player_key", "player_id", "name", "position_std",
+        "debut_year", "last_year", "total_yards", "total_returns",
+        "career_span", "rookie_numeric", "avg_yards_per_year", "avg_returns_per_year"
+    )
+log_memory("After creating dim_player")
 
+# Create dim_team with correctly ordered columns
+dim_team = clean_df.select("team_std").distinct() \
+    .withColumn("team_key", row_number().over(window_team)) \
+    .select("team_key", "team_std")
+log_memory("After creating dim_team")
+
+# Create dim_year with correctly ordered columns
+dim_year = clean_df.select("year").distinct() \
+    .withColumn("year_key", row_number().over(window_year)) \
+    .select("year_key", "year")
+log_memory("After creating dim_year")
+
+# Join to get all career stats
 joined = clean_df.alias("s") \
-    .join(dim_player.select("player_id", "player_key"), "player_id", "left") \
-    .join(dim_team.select("team_std", "team_key"), "team_std", "left") \
-    .join(dim_year.select("year", "year_key"), "year", "left")
+    .join(dim_player.select("player_id", "player_key"), on="player_id", how="left") \
+    .join(dim_team.select("team_std", "team_key"), on="team_std", how="left") \
+    .join(dim_year.select("year", "year_key"), on="year", how="left")
+log_memory("After joining all foreign keys/dimensions to fact tables)")
 
-fact_df = joined.select(
+# Build gold fact_df with precise ordering and derived metrics
+fact_base = joined.select(
     col("player_key"),
     col("team_key"),
     col("year_key"),
@@ -333,34 +416,40 @@ fact_df = joined.select(
     col("returns_longer_40_clean").alias("returns_longer_40"),
     col("returns_for_tds_clean").alias("returns_for_tds"),
     col("fumbles_clean").alias("fumbles")
-).withColumn("success_rate_20plus", when(col("returns") > 0, col("returns_longer_20") / col("returns")).otherwise(0)) \
- .withColumn("success_rate_40plus", when(col("returns") > 0, col("returns_longer_40") / col("returns")).otherwise(0)) \
- .withColumn("turnover_risk", when(col("returns") > 0, col("fumbles") / col("returns")).otherwise(0)) \
- .withColumn("weighted_return_score", col("yards_returned") * col("returns_for_tds")) \
- .withColumn("cumulative_yards", _sum("yards_returned").over(Window.partitionBy("player_key").orderBy("year_key").rowsBetween(Window.unboundedPreceding, 0)))
+)
 
-# Write gold tables to HDFS with format of choice (csv or parquet)
-def write_table(df, path, format_choice):
-    if format_choice == "csv":
-        df.write.mode("overwrite").option("header", True).csv(path)
-    elif format_choice == "parquet":
+fact_df = fact_base \
+    .withColumn("success_rate_20plus", when(col("returns") > 0, col("returns_longer_20") / col("returns")).otherwise(0)) \
+    .withColumn("success_rate_40plus", when(col("returns") > 0, col("returns_longer_40") / col("returns")).otherwise(0)) \
+    .withColumn("turnover_risk", when(col("returns") > 0, col("fumbles") / col("returns")).otherwise(0)) \
+    .withColumn("weighted_return_score", col("yards_returned") * col("returns_for_tds")) \
+    .withColumn("cumulative_yards", _sum("yards_returned").over(Window.partitionBy("player_key").orderBy("year_key").rowsBetween(Window.unboundedPreceding, 0)))
+
+# write as CSV or Parquet to Gold
+def write_table(df, path, fmt):
+    if fmt == "csv":
+        df.coalesce(1).write.mode("overwrite").option("header", True).option("quote", "\"").option("escape", "\"").csv(path)
+        "MARC, HANNA", 3, 5, []
+    elif fmt == "parquet":
         df.write.mode("overwrite").parquet(path)
     else:
-        raise ValueError("Invalid format_choice: use 0 for CSV, 1 for Parquet")
+        raise ValueError("Invalid format choice. Use 'csv' or 'parquet'.")
+
+# Gold table paths
+gold_fact_path = f"{gold_path_base}/fact/"
+gold_dim_player_path = f"{gold_path_base}/dim_player/"
+gold_dim_team_path = f"{gold_path_base}/dim_team/"
+gold_dim_year_path = f"{gold_path_base}/dim_year/"
 
 # Write Gold tables only if not LOCAL
 if not LOCAL:
-    GOLD_WRITE = int(sys.argv[2].strip())
-    # Gold output format choices: 0 for CSV, 1 for Parquet
-    if GOLD_WRITE == 1:
-        output_format = "parquet"
-    else:
-        output_format = "csv"
-
-        write_table(fact_df, gold_fact_path, output_format)
-        write_table(dim_player, gold_dim_player_path, output_format)
-        write_table(dim_team, gold_dim_team_path, output_format)
-        write_table(dim_year, gold_dim_year_name, output_format)
+    write_table(fact_df, gold_fact_path, output_format)
+    write_table(dim_player, gold_dim_player_path, output_format)
+    print("------SHOWING TEAM DF------")
+    dim_team.show()
+    write_table(dim_team, gold_dim_team_path, output_format)
+    write_table(dim_year, gold_dim_year_path, output_format)
+log_memory("After writing gold fact table to HDFS (fact_df)")
 
 # ETL Validation Tests
 script_dir = os.path.dirname(os.path.abspath(__file__))
