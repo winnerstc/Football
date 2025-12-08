@@ -18,7 +18,9 @@ pipeline {
         JAVA_HOME       = "/usr/lib/jvm/java-1.8.0"
         PATH            = "/opt/cloudera/parcels/CDH/bin:${env.PATH}"
     }
-stage('Install Python Dependencies') {
+
+    stages {
+        stage('Install Python Dependencies') {
     steps {
         sh """
             echo '📦 Installing pytest...'
@@ -26,7 +28,6 @@ stage('Install Python Dependencies') {
         """
     }
 }
-    stages {
 
         stage('Checkout Scripts') {
             steps {
@@ -75,7 +76,10 @@ stage('Install Python Dependencies') {
                         sh """
                             echo "🔥 Running Spark Job: ${job}"
 
-                            spark-submit ${PYTHON_SCRIPTS_DIR}/${job}
+                            spark-submit \
+                                /*--master yarn \
+                                --deploy-mode cluster \ */
+                                ${PYTHON_SCRIPTS_DIR}/${job}
                         """
                     }
                 }
