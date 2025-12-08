@@ -75,10 +75,7 @@ stage('Install Python Dependencies') {
                         sh """
                             echo "🔥 Running Spark Job: ${job}"
 
-                            spark-submit \
-                                /*--master yarn \
-                                --deploy-mode cluster \ */
-                                ${PYTHON_SCRIPTS_DIR}/${job}
+                            spark-submit ${PYTHON_SCRIPTS_DIR}/${job}
                         """
                     }
                 }
