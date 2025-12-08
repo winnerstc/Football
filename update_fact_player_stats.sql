@@ -216,8 +216,6 @@ LEFT JOIN good_years gy ON s.player_id = gy.player_id
 LEFT JOIN years_span ys ON s.player_id = ys.player_id;
 
 
-
-
 drop table fix_college;
 
 -- 1.  one-time build (ALL players, no NULL filter)
