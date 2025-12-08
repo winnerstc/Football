@@ -1,119 +1,98 @@
-
-
+# -*- coding: utf-8 -*-
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, regexp_replace, split, trim, when, size
 from pyspark.sql.types import IntegerType, FloatType
 
-# --- Spark Session Setup ---
 spark = SparkSession.builder \
-    .appName("NFLKickingIncrementalToSilver") \
-    .enableHiveSupport() \
-    .getOrCreate()
+    .appName("NFLKickingIncrementalToSilver") \
+    .enableHiveSupport() \
+    .getOrCreate()
 
 spark.sql("USE joepostgres")
 
-# --- Configuration ---
-bronze_table = "nfl_kicking"         
-inc_source_table = "nfl_kicking_inc" 
-silver_path = "hdfs:///tmp/DE011025/Joe/silver/nfl_kicking_output" # Final Output Path for Cleaned Data
+# ---------- config ----------
+BRONZE_TBL   = "nfl_kicking"
+INC_SOURCE   = "nfl_kicking_inc"
+SILVER_PATH  = "hdfs:///tmp/DE011025/Joe/silver/nfl_kicking_output"
 
-# Load current target count (nfl_kicking)
-bronze_df = spark.sql(f"SELECT * FROM {bronze_table}")
-bronze_count = bronze_df.count()
+# ---------- count check ----------
+bronze_df  = spark.sql("SELECT * FROM {}".format(BRONZE_TBL))
+bronze_cnt = bronze_df.count()
 
-# Load new source count (nfl_kicking_inc)
 try:
-    inc_df = spark.sql(f"SELECT * FROM {inc_source_table}")
-    inc_count = inc_df.count()
+    inc_df = spark.sql("SELECT * FROM {}".format(INC_SOURCE))
+    inc_cnt = inc_df.count()
 except Exception:
-    inc_count = 0
+    inc_cnt = 0
 
-print(f"[KICKING] bronze_count={bronze_count}, inc_count={inc_count}")
+print("[KICKING] bronze_cnt={}, inc_cnt={}".format(bronze_cnt, inc_cnt))
 
-# --- Conditional Processing ---
-if bronze_count < inc_count:
-    print("[KICKING] New data detected. Rebuilding silver and updating bronze count checkpoint...")
+# ---------- rebuild only if new data ----------
+if bronze_cnt < inc_cnt:
+    print("[KICKING] New data detected – rebuilding silver & bronze.")
 
-    df = inc_df # Start with the incremental source data
+    df = inc_df
 
-    for c, t in df.dtypes:
-        if t == "string":
-            df = df.withColumn(c, trim(col(c)))
+    # 1. trim strings
+    for c, t in df.dtypes:
+        if t == "string":
+            df = df.withColumn(c, trim(col(c)))
+    df = df.replace("--", "0").replace("", None)
 
-    df = df.replace("--", "0")
-    df = df.replace("", None)
+    # 2. player_id numeric
+    df = df.withColumn(
+        "player_id",
+        regexp_replace(col("player_id"), ".*?/", "").cast(IntegerType())
+    )
 
-    df = df.withColumn(
-        "player_id",
-        regexp_replace(col("player_id"), ".*?/", "").cast(IntegerType())
-    )
+    # 3. split name
+    df = (df.withColumn("name_split", split(col("name"), ", "))
+          .withColumn("last_name",  col("name_split").getItem(0))
+          .withColumn("first_name",
+                      when(size(col("name_split")) > 1,
+                           col("name_split").getItem(1)).otherwise(None)))
+    df = df.filter(col("first_name").isNotNull())
 
-    df = df.withColumn("name_split", split(col("name"), ", "))
-    df = df.withColumn("last_name", col("name_split")[0])
-    df = df.withColumn(
-        "first_name",
-        when(size(col("name_split")) > 1, col("name_split")[1]).otherwise(None)
-    )
+    # 4. integer columns
+    int_cols = [
+        "kicks_blocked", "longest_fg_made", "fgs_made", "fgs_attempted",
+        "fgs_made_2029_yards", "fgs_attempted_2029_yards",
+        "fgs_made_3039_yards", "fgs_attempted_3039_yards",
+        "fgs_made_4049_yards", "fgs_attempted_4049_yards",
+        "fgs_made_50_yards", "fgs_attempted_50_yards",
+        "extra_points_attempted", "extra_points_made"
+    ]
+    for c in int_cols:
+        df = (df.withColumn(c, regexp_replace(col(c), ",", ""))
+               .withColumn(c, regexp_replace(col(c), "[^0-9-]", ""))
+               .withColumn(c, col(c).cast(IntegerType())))
 
-    df = df.filter(col("first_name").isNotNull())
+    # 5. float columns
+    float_cols = [
+        "fg_percentage", "fgs_percentage_2029_yards", "fgs_percentage_3039_yards",
+        "fgs_percentage_4049_yards", "fgs_percentage_50_yards",
+        "percentage_of_extra_points"
+    ]
+    for c in float_cols:
+        df = df.withColumn(c, col(c).cast(FloatType()))
 
-    int_cols = [
-        "kicks_blocked",
-        "longest_fg_made",
-        "fgs_made",
-        "fgs_attempted",
-        "fgs_made_2029_yards",
-        "fgs_attempted_2029_yards",
-        "fgs_made_3039_yards",
-        "fgs_attempted_3039_yards",
-        "fgs_made_4049_yards",
-        "fgs_attempted_4049_yards",
-        "fgs_made_50_yards",
-        "fgs_attempted_50_yards",
-        "extra_points_attempted",
-        "extra_points_made"
-    ]
+    # 6. filters
+    df = df.filter(col("fgs_made").cast(IntegerType()) >= 20)
+    df = df.filter(col("year").cast(IntegerType()) >= 1970)
 
-    for c in int_cols:
-        df = df.withColumn(c, regexp_replace(col(c), ",", ""))
-        df = df.withColumn(c, regexp_replace(col(c), "[^0-9-]", "")) # Safely remove non-numeric chars
-        df = df.withColumn(c, col(c).cast(IntegerType()))
+    # 7. drop unused
+    df = df.drop("position", "kicks_blocked", "extra_points_blocked", "name", "name_split")
 
-    float_cols = [
-        "fg_percentage",
-        "fgs_percentage_2029_yards",
-        "fgs_percentage_3039_yards",
-        "fgs_percentage_4049_yards",
-        "fgs_percentage_50_yards",
-        "percentage_of_extra_points"
-    ]
+    # ---------- 8.  WRITE ----------
+    # silver (clean)
+    df.write.mode("overwrite").parquet(SILVER_PATH)
 
-    for c in float_cols:
-        df = df.withColumn(c, col(c).cast(FloatType()))
+    # bronze (raw) overwrite
+    spark.sql("INSERT OVERWRITE TABLE joepostgres.{} SELECT * FROM joepostgres.{}"
+              .format(BRONZE_TBL, INC_SOURCE))
 
-    df = df.filter(col("fgs_made") >= 20)
-    df = df.filter(col("year").cast(IntegerType()) >= 1970)
-
-    df = df.drop(
-        "position",
-        "kicks_blocked",
-        "extra_points_blocked",
-        "name",
-        "name_split"
-    )
-
-    # --- FINAL WRITE OPERATIONS ---
-    
-    # 1. Write the CLEANED data (df) to the Silver Path (final output)
-    df.write.mode("overwrite").parquet(silver_path)
-
-    print("[KICKING] Silver refreshed.")
-
-    # 2. Overwrite the Bronze Table (nfl_kicking) with the RAW data (inc_df)
-    # Using INSERT OVERWRITE TABLE guarantees a full replacement, fixing the count issue.
-    spark.sql(f"INSERT OVERWRITE TABLE joepostgres.{bronze_table} SELECT * FROM joepostgres.{inc_source_table}")
-
+    print("[KICKING] Silver & bronze updated.")
 else:
-    print("[KICKING] No new data. Skipping rebuild.")
+    print("[KICKING] No new data – skipping.")
 
 spark.stop()
