@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, regexp_replace, split, trim, when, size
