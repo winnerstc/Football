@@ -282,3 +282,6 @@ SELECT * FROM players_dim;
 
 INSERT overwrite table fact_player_stats_ext
 SELECT * FROM fact_player_stats;
+
+
+
