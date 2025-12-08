@@ -11,9 +11,9 @@ spark = SparkSession.builder \
 spark.sql("USE joepostgres")
 
 # --- Configuration ---
-bronze_table = "nfl_rushing"         # Target Table (Used for COUNT CHECKPOINT - stores RAW data)
-inc_source_table = "nfl_rushing_inc" # Source Table (New Raw Data)
-silver_path = "hdfs:///tmp/DE011025/Joe/silver/nfl_rushing_output" # Final Output Path for Cleaned Data
+bronze_table = "nfl_rushing"        
+inc_source_table = "nfl_rushing_inc"
+silver_path = "hdfs:///tmp/DE011025/Joe/silver/nfl_rushing_output" 
 # bronze_path is not needed for the SQL INSERT OVERWRITE approach
 
 # Load current target count (nfl_rushing)
