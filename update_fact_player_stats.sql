@@ -1,22 +1,4 @@
--- 🛠 0. CONFIGURATION & OPTIMIZATION FLAGS (DISABLING STATISTICS)
 
--- *** REMOVE UGI & SCRATCHDIR SETTINGS HERE *** (They are now irrelevant)
-
--- 🛑 NEW SETTINGS TO BYPASS SPARSE EXCEPTION WITHOUT ANALYZE TABLE 🛑
--- Disables the Hive optimizer's dependency on statistics.
-SET hive.stats.autogather=false;
-SET hive.stats.fetch.column.stats=false;
-SET hive.cbo.enable=false; 
--- Disables Cost-Based Optimization (CBO), which heavily relies on stats.
--- CBO is often the component that throws the "Sparse Exception" error.
--- ----------------------------------------------------------------------
-
--- Retain Tez and MapJoin settings to help the unoptimized plan run:
-SET hive.execution.engine=tez; 
-SET hive.tez.container.size=4096;      
-SET hive.tez.java.opts=-Xmx3276m;      
-SET hive.auto.convert.join.noconditionaltask=true;
-SET hive.auto.convert.join.noconditionaltask.size=300000000;
 
 
 --------------Drop fact table-------------
