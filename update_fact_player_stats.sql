@@ -122,7 +122,6 @@ position_map AS (
            END AS position_key
     FROM stats0
 ),
- ------------ year span (raw tables) ------------ 
 years_span AS (
     SELECT player_id,
            CAST(MIN(year) AS STRING) AS y_min,
@@ -142,7 +141,6 @@ years_span AS (
                 ) u
            GROUP BY player_id
        ),
-/* ------------ good years via views ------------ */
 good_years AS (
     SELECT s.player_id,
            GREATEST(COALESCE(p.years,0),
@@ -159,7 +157,6 @@ good_years AS (
     LEFT JOIN v_kicking  k ON s.player_id = k.player_id
     LEFT JOIN v_returns  t ON s.player_id = t.player_id
 ),
-/* ---------- team fallback (unchanged) ---------- */
 all_teams AS (
     SELECT player_id, team FROM nfl_passing_silver
     UNION ALL
@@ -188,7 +185,6 @@ player_team AS (
     FROM nfl_players_silver pl
     LEFT JOIN best_team bt ON pl.player_id = bt.player_id
 )
-/* ---------- final insert ------------*/
 INSERT INTO Fact_Player_Stats
 SELECT
     s.player_id                                           AS player_key,
