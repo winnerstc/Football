@@ -18,7 +18,14 @@ pipeline {
         JAVA_HOME       = "/usr/lib/jvm/java-1.8.0"
         PATH            = "/opt/cloudera/parcels/CDH/bin:${env.PATH}"
     }
-
+stage('Install Python Dependencies') {
+    steps {
+        sh """
+            echo '📦 Installing pytest...'
+            python3 -m pip install --user pytest
+        """
+    }
+}
     stages {
 
         stage('Checkout Scripts') {
