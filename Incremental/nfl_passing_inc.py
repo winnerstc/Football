@@ -1,12 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
---------------------------------------------------
-NFL Passing  –  Bronze → Silver  incremental
---------------------------------------------------
-Reads  :  nfl_passing_inc  (parquet landed by Sqoop)
-Writes :  nfl_passing       (bronze overwrite)
-          hdfs:///tmp/DE011025/Joe/silver/nfl_passing_output  (silver)
-"""
+
 
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, regexp_replace, split, trim, when, size
