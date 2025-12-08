@@ -14,7 +14,7 @@ spark.sql("USE joepostgres")
 # --- Configuration ---
 bronze_table = "nfl_defensive"         
 inc_source_table = "nfl_defensive_inc" 
-silver_path = "hdfs:///tmp/DE011025/Joe/silver/nfl_defensive_output" # Final Output Path for Cleaned Data
+silver_path = "hdfs:///tmp/DE011025/Joe/silver/nfl_defensive_output" 
 
 # Load current target count (nfl_defensive)
 # This will load the raw data from the last run to check its count
