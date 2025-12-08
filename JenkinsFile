@@ -11,9 +11,8 @@ pipeline {
         HIVE_PASSWORD      = 'WelcomeItc@2022'
         HIVE_FILE          = 'update_fact_player_stats.sql'
     }
-        //////
-        sh 'echo "=== ENVIRONMENT VARIABLES ==="'
-        sh 'env | sort'
+    
+        
     stages {
 
         /* -------------------------------------------------
@@ -21,6 +20,8 @@ pipeline {
          * ------------------------------------------------- */
         stage('Checkout Scripts') {
             steps {
+                sh 'echo "=== ENVIRONMENT VARIABLES ==="'
+                 sh 'env | sort'
                 git branch: 'Development-Branch',
                     url: "${GITHUB_REPO}"
 
