@@ -20,14 +20,15 @@ pipeline {
     }
 
     stages {
+
         stage('Install Python Dependencies') {
-    steps {
-        sh """
-            echo '📦 Installing pytest...'
-            python3 -m pip install --user pytest
-        """
-    }
-}
+            steps {
+                sh """
+                    echo '📦 Installing pytest...'
+                    python3 -m pip install --user pytest
+                """
+            }
+        }
 
         stage('Checkout Scripts') {
             steps {
@@ -77,8 +78,8 @@ pipeline {
                             echo "🔥 Running Spark Job: ${job}"
 
                             spark-submit \
-                                /*--master yarn \
-                                --deploy-mode cluster \ */
+                                --master yarn \
+                                --deploy-mode cluster \
                                 ${PYTHON_SCRIPTS_DIR}/${job}
                         """
                     }
@@ -90,10 +91,10 @@ pipeline {
             steps {
                 sh """
                     echo '🧪 Running Full Test Suite...'
-                    pytest 'unit tests/full_test_nfl_21_tests.py'
+                    python3 -m pytest 'unit tests/full_test_nfl_21_tests.py'
 
                     echo '🧪 Running All 7 Transform Tests...'
-                    pytest 'unit tests/test_all_7_transforms.py'
+                    python3 -m pytest 'unit tests/test_all_7_transforms.py'
                 """
             }
         }
@@ -111,14 +112,10 @@ pipeline {
             }
         }
 
-    }   // <-- END OF STAGES BLOCK
+    } // END OF STAGES BLOCK
 
     post {
-        success {
-            echo '🎉 Pipeline finished successfully!'
-        }
-        failure {
-            echo '❌ Pipeline failed — check logs.'
-        }
+        success { echo '🎉 Pipeline finished successfully!' }
+        failure { echo '❌ Pipeline failed — check logs.' }
     }
-}   // <-- END OF PIPELINE
+} // END OF PIPELINE
