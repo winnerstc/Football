@@ -1,4 +1,25 @@
+-- 🛠 0. CONFIGURATION & OPTIMIZATION FLAGS (CRITICAL FOR HDFS/TEZ RELIABILITY)
+-- Force scratch directory to the HDFS superuser's home, which has guaranteed write permissions.
+SET hive.exec.scratchdir=/user/hdfs/tmp; 
 
+-- Force Tez as the execution engine (more stable for complex analytical queries)
+SET hive.execution.engine=tez; 
+-- Increase YARN container memory (Adjust based on your cluster's resource availability)
+SET hive.tez.container.size=4096;      -- Sets container to 4GB
+SET hive.tez.java.opts=-Xmx3276m;      -- Sets Java Heap to ~80% of container size
+-- Allow larger tables for automatic MapJoin conversion (improves join speed)
+SET hive.auto.convert.join.noconditionaltask=true;
+SET hive.auto.convert.join.noconditionaltask.size=300000000; 
+
+-- 📊 1. ANALYZE TABLES (MUST BE INCLUDED TO FIX SPARSE EXCEPTION)
+-- This will now run successfully under the HDFS user context, providing the stats needed for the query optimizer.
+ANALYZE TABLE nfl_passing_silver COMPUTE STATISTICS FOR COLUMNS;
+ANALYZE TABLE nfl_rushing_silver COMPUTE STATISTICS FOR COLUMNS;
+ANALYZE TABLE nfl_receiving_silver COMPUTE STATISTICS FOR COLUMNS;
+ANALYZE TABLE nfl_defensive_silver COMPUTE STATISTICS FOR COLUMNS;
+ANALYZE TABLE nfl_kicking_silver COMPUTE STATISTICS FOR COLUMNS;
+ANALYZE TABLE nfl_returns_silver COMPUTE STATISTICS FOR COLUMNS;
+ANALYZE TABLE nfl_players_silver COMPUTE STATISTICS FOR COLUMNS;
 
 
 --------------Drop fact table-------------
