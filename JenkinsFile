@@ -2,14 +2,22 @@ pipeline {
     agent any
     options { timeout(time: 45, unit: 'MINUTES') }
 
-   environment {
+       environment {
+        /* --- your original vars --- */
         HADOOP_USER_NAME   = 'hdfs'
-        GITHUB_REPO        = 'https://github.com/winnerstc/Football.git'
+        GITHUB_REPO        = 'https://github.com/winnerstc/Football.git'   // fixed space
         PYTHON_SCRIPTS_DIR = 'Incremental'
         HIVE_JDBC_URL      = 'jdbc:hive2://ip-172-31-8-235.eu-west-2.compute.internal:10000/joepostgres'
         HIVE_USER          = 'Consultants'
         HIVE_PASSWORD      = 'WelcomeItc@2022'
         HIVE_FILE          = 'update_fact_player_stats.sql'
+    
+        /* --- cluster paths --- */
+        HADOOP_CONF_DIR = "/etc/hadoop/conf"
+        YARN_CONF_DIR   = "/etc/hadoop/conf"
+        SPARK_HOME      = "/opt/cloudera/parcels/CDH/lib/spark"
+        JAVA_HOME       = "/usr/lib/jvm/java-1.8.0"
+        PATH            = "/opt/cloudera/parcels/CDH/bin:${env.PATH}"
     }
     
         
