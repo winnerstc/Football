@@ -56,64 +56,97 @@ pipeline {
         /* -------------------------------------------------
          * 3. Run Spark ETL Scripts
          * ------------------------------------------------- */
-        stage('Run spark nfl player script') {
-            steps {
-                sh 'echo "=== ENVIRONMENT VARIABLES ==="'
-                 sh 'env | sort'
-                sh '''
-                  echo "Running incremental script..."
-                  spark-submit Incremental/nfl_players_inc.py
-                '''
+        stage('Run Spark nfl players script') {
+                steps {
+                    sh '''
+                        echo "=== Using Spark Home: $SPARK_HOME ==="
+                        echo "=== Using Hadoop Conf: $HADOOP_CONF_DIR ==="
+            
+                        spark-submit \
+                            --master yarn \
+                            --deploy-mode cluster \
+                            Incremental/nfl_players_inc.py
+                    '''
+                }
             }
-        }
-        stage('Run spark nfl defensive script') {
-            steps {
-                sh '''
-                  echo "Running incremental script..."
-                  spark-submit Incremental/nfl_defensive_inc.py
-                '''
+        stage('Run Spark nfl defensive script Job') {
+                steps {
+                    sh '''
+                        echo "=== Using Spark Home: $SPARK_HOME ==="
+                        echo "=== Using Hadoop Conf: $HADOOP_CONF_DIR ==="
+            
+                        spark-submit \
+                            --master yarn \
+                            --deploy-mode cluster \
+                            Incremental/nfl_defensive_inc.py
+                    '''
+                }
             }
-        }
-        stage('Run spark nfl kicking script') {
-            steps {
-                sh '''
-                  echo "Running incremental script..."
-                  spark-submit Incremental/nfl_kicking_inc.py
-                '''
+        stage('Run Spark nfl kicking script Job') {
+                steps {
+                    sh '''
+                        echo "=== Using Spark Home: $SPARK_HOME ==="
+                        echo "=== Using Hadoop Conf: $HADOOP_CONF_DIR ==="
+            
+                        spark-submit \
+                            --master yarn \
+                            --deploy-mode cluster \
+                            Incremental/nfl_kicking_inc.py
+                    '''
+                }
             }
-        }
-        stage('Run spark nfl passing script') {
-            steps {
-                sh '''
-                  echo "Running incremental script..."
-                  spark-submit Incremental/nfl_passing_inc.py
-                '''
+       stage('Run Spark nfl rushing script Job') {
+                steps {
+                    sh '''
+                        echo "=== Using Spark Home: $SPARK_HOME ==="
+                        echo "=== Using Hadoop Conf: $HADOOP_CONF_DIR ==="
+            
+                        spark-submit \
+                            --master yarn \
+                            --deploy-mode cluster \
+                            Incremental/nfl_rushing_inc.py
+                    '''
+                }
             }
-        }
-        stage('Run spark nfl receiving script') {
-            steps {
-                sh '''
-                  echo "Running incremental script..."
-                  spark-submit Incremental/nfl_receiving_inc.py
-                '''
+        stage('Run Spark nfl receiving script Job') {
+                steps {
+                    sh '''
+                        echo "=== Using Spark Home: $SPARK_HOME ==="
+                        echo "=== Using Hadoop Conf: $HADOOP_CONF_DIR ==="
+            
+                        spark-submit \
+                            --master yarn \
+                            --deploy-mode cluster \
+                            Incremental/nfl_receiving_inc.py
+                    '''
+                }
             }
-        }
-        stage('Run spark nfl returns script') {
-            steps {
-                sh '''
-                  echo "Running incremental script..."
-                  spark-submit Incremental/nfl_returns_inc.py
-                '''
+        stage('Run Spark nfl returns script Job') {
+                steps {
+                    sh '''
+                        echo "=== Using Spark Home: $SPARK_HOME ==="
+                        echo "=== Using Hadoop Conf: $HADOOP_CONF_DIR ==="
+            
+                        spark-submit \
+                            --master yarn \
+                            --deploy-mode cluster \
+                            Incremental/nfl_returns_inc.py
+                    '''
+                }
             }
-        }
-        stage('Run spark nfl rushing script') {
-            steps {
-                sh '''
-                  echo "Running incremental script..."
-                  spark-submit Incremental/nfl_rushing_inc.py
-                '''
+        stage('Run Spark nfl passing script Job') {
+                steps {
+                    sh '''
+                        echo "=== Using Spark Home: $SPARK_HOME ==="
+                        echo "=== Using Hadoop Conf: $HADOOP_CONF_DIR ==="
+            
+                        spark-submit \
+                            --master yarn \
+                            --deploy-mode cluster \
+                            Incremental/nfl_passing_inc.py
+                    '''
+                }
             }
-        }
         /* -------------------------------------------------
          * 4. Run Hive SQL script
          * ------------------------------------------------- */
