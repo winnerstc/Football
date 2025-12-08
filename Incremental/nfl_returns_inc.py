@@ -14,7 +14,7 @@ spark.sql("USE joepostgres")
 
 # --- Configuration ---
 bronze_table = "nfl_returns"
-inc_source_table = "nfl_returns_inc" # Corrected variable name and quotes
+inc_source_table = "nfl_returns_inc"
 silver_path = "hdfs:///tmp/DE011025/Joe/silver/nfl_returns_output"
 
 # Load current target count (nfl_returns)
