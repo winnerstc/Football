@@ -11,7 +11,9 @@ pipeline {
         HIVE_PASSWORD      = 'WelcomeItc@2022'
         HIVE_FILE          = 'update_fact_player_stats.sql'
     }
-
+        //////
+        sh 'echo "=== ENVIRONMENT VARIABLES ==="'
+        sh 'env | sort'
     stages {
 
         /* -------------------------------------------------
