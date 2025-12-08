@@ -13,23 +13,24 @@ spark.sql("USE joepostgres")
 
 bronze_table = "nfl_players"
 silver_path = "hdfs:///tmp/DE011025/Joe/silver/nfl_players_output"
+bronze_path="hdfs:///tmp/DE011025/Joe/raw/nfl_players"
 
 bronze_df = spark.sql("SELECT * FROM " + bronze_table)
 bronze_count = bronze_df.count()
 
 try:
-    silver_df = spark.read.parquet(silver_path)
-    silver_count = silver_df.count()
+    inc_df = spark.sql("SELECT * FROM nfl_players_inc")
+    inc_count = inc_df.count()
 except Exception:
-    silver_count = 0
+    inc_count = 0
 
 print("[PLAYERS] bronze_count=" + str(bronze_count)
-      + ", silver_count=" + str(silver_count))
+      + ", incremental_count=" + str(inc_count))
 
-if bronze_count > silver_count:
+if bronze_count < inc_count:
     print("[PLAYERS] New data found. Rebuilding silver...")
 
-    df = bronze_df
+    df = inc_df
 
     for c, t in df.dtypes:
         if t == "string":
@@ -71,6 +72,7 @@ if bronze_count > silver_count:
 
     df.write.mode("overwrite").parquet(silver_path)
     print("[PLAYERS] Silver refreshed.")
+    inc_df.write.mode("overwrite").parquet("bronze_path")
 
 else:
     print("[PLAYERS] No new data. Skipping.")
