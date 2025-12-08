@@ -216,70 +216,70 @@ LEFT JOIN good_years gy ON s.player_id = gy.player_id
 LEFT JOIN years_span ys ON s.player_id = ys.player_id;
 
 
--- drop table fix_college;
+drop table fix_college;
 
--- -- 1.  one-time build (ALL players, no NULL filter)
--- CREATE TABLE fix_college
--- STORED AS ORC
--- AS
--- SELECT DISTINCT                      -- or GROUP BY if you prefer
---        f.player_key,
---        p.college AS college_key
--- FROM   Fact_Player_Stats f
--- JOIN   nfl_players_silver p
---   ON   CAST(p.player_id AS INT) = f.player_key;
+-- 1.  one-time build (ALL players, no NULL filter)
+CREATE TABLE fix_college
+STORED AS ORC
+AS
+SELECT DISTINCT                      -- or GROUP BY if you prefer
+       f.player_key,
+       p.college AS college_key
+FROM   Fact_Player_Stats f
+JOIN   nfl_players_silver p
+  ON   CAST(p.player_id AS INT) = f.player_key;
 
--- -- 2.  overwrite, but only update the NULL college_key rows
--- INSERT OVERWRITE TABLE Fact_Player_Stats
--- SELECT f.player_key,
---        COALESCE(fc.college_key, f.college_key) AS college_key,
---        f.team_key,
---        f.position_key,
---        f.passing_yards,
---        f.passing_tds,
---        f.rushing_yards,
---        f.rushing_tds,
---        f.receiving_yards,
---        f.receiving_tds,
---        f.total_tackles,
---        f.sacks,
---        f.ints,
---        f.fgs_made,
---        f.kick_return_tds,
---        f.punt_return_tds,
---        f.years_played,
---        f.good_years
--- FROM   Fact_Player_Stats f
--- LEFT JOIN (
---         SELECT player_key,
---                MAX(college_key) AS college_key
---         FROM   fix_college
---         GROUP  BY player_key          -- guarantees 1 row per player
--- ) fc
--- ON f.player_key = fc.player_key;
--- ---------------------update external star schema tables-----------------------
+-- 2.  overwrite, but only update the NULL college_key rows
+INSERT OVERWRITE TABLE Fact_Player_Stats
+SELECT f.player_key,
+       COALESCE(fc.college_key, f.college_key) AS college_key,
+       f.team_key,
+       f.position_key,
+       f.passing_yards,
+       f.passing_tds,
+       f.rushing_yards,
+       f.rushing_tds,
+       f.receiving_yards,
+       f.receiving_tds,
+       f.total_tackles,
+       f.sacks,
+       f.ints,
+       f.fgs_made,
+       f.kick_return_tds,
+       f.punt_return_tds,
+       f.years_played,
+       f.good_years
+FROM   Fact_Player_Stats f
+LEFT JOIN (
+        SELECT player_key,
+               MAX(college_key) AS college_key
+        FROM   fix_college
+        GROUP  BY player_key          -- guarantees 1 row per player
+) fc
+ON f.player_key = fc.player_key;
+---------------------update external star schema tables-----------------------
 
--- INSERT overwrite table positions_dim_ext
--- SELECT * FROM positions_dim;
-
-
-
--- INSERT overwrite table college_dim_ext
--- SELECT * FROM college_dim;
-
--- INSERT overwrite table teams_dim_ext
--- SELECT * FROM teams_dim;
+INSERT overwrite table positions_dim_ext
+SELECT * FROM positions_dim;
 
 
 
--- INSERT overwrite table players_dim_ext
--- SELECT * FROM players_dim;
+INSERT overwrite table college_dim_ext
+SELECT * FROM college_dim;
+
+INSERT overwrite table teams_dim_ext
+SELECT * FROM teams_dim;
+
+
+
+INSERT overwrite table players_dim_ext
+SELECT * FROM players_dim;
 
 
 
 
--- INSERT overwrite table fact_player_stats_ext
--- SELECT * FROM fact_player_stats;
+INSERT overwrite table fact_player_stats_ext
+SELECT * FROM fact_player_stats;
 
 
 
