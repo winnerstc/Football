@@ -69,8 +69,8 @@ pipeline {
                             echo "🔥 Running Spark Job: ${job}"
 
                             spark-submit \
-                                /*--master yarn \ */
-                                --deploy-mode cluster \
+                                /*--master yarn \
+                                --deploy-mode cluster \ */
                                 ${PYTHON_SCRIPTS_DIR}/${job}
                         """
                     }
