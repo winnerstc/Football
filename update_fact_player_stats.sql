@@ -1,25 +1,22 @@
--- 🛠 0. CONFIGURATION & OPTIMIZATION FLAGS (CRITICAL FOR HDFS/TEZ RELIABILITY)
--- Force scratch directory to the HDFS superuser's home, which has guaranteed write permissions.
-SET hive.exec.scratchdir=/user/hdfs/tmp; 
+-- 🛠 0. CONFIGURATION & OPTIMIZATION FLAGS (DISABLING STATISTICS)
 
--- Force Tez as the execution engine (more stable for complex analytical queries)
+-- *** REMOVE UGI & SCRATCHDIR SETTINGS HERE *** (They are now irrelevant)
+
+-- 🛑 NEW SETTINGS TO BYPASS SPARSE EXCEPTION WITHOUT ANALYZE TABLE 🛑
+-- Disables the Hive optimizer's dependency on statistics.
+SET hive.stats.autogather=false;
+SET hive.stats.fetch.column.stats=false;
+SET hive.cbo.enable=false; 
+-- Disables Cost-Based Optimization (CBO), which heavily relies on stats.
+-- CBO is often the component that throws the "Sparse Exception" error.
+-- ----------------------------------------------------------------------
+
+-- Retain Tez and MapJoin settings to help the unoptimized plan run:
 SET hive.execution.engine=tez; 
--- Increase YARN container memory (Adjust based on your cluster's resource availability)
-SET hive.tez.container.size=4096;      -- Sets container to 4GB
-SET hive.tez.java.opts=-Xmx3276m;      -- Sets Java Heap to ~80% of container size
--- Allow larger tables for automatic MapJoin conversion (improves join speed)
+SET hive.tez.container.size=4096;      
+SET hive.tez.java.opts=-Xmx3276m;      
 SET hive.auto.convert.join.noconditionaltask=true;
-SET hive.auto.convert.join.noconditionaltask.size=300000000; 
-
--- 📊 1. ANALYZE TABLES (MUST BE INCLUDED TO FIX SPARSE EXCEPTION)
--- This will now run successfully under the HDFS user context, providing the stats needed for the query optimizer.
-ANALYZE TABLE nfl_passing_silver COMPUTE STATISTICS FOR COLUMNS;
-ANALYZE TABLE nfl_rushing_silver COMPUTE STATISTICS FOR COLUMNS;
-ANALYZE TABLE nfl_receiving_silver COMPUTE STATISTICS FOR COLUMNS;
-ANALYZE TABLE nfl_defensive_silver COMPUTE STATISTICS FOR COLUMNS;
-ANALYZE TABLE nfl_kicking_silver COMPUTE STATISTICS FOR COLUMNS;
-ANALYZE TABLE nfl_returns_silver COMPUTE STATISTICS FOR COLUMNS;
-ANALYZE TABLE nfl_players_silver COMPUTE STATISTICS FOR COLUMNS;
+SET hive.auto.convert.join.noconditionaltask.size=300000000;
 
 
 --------------Drop fact table-------------
