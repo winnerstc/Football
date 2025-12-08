@@ -2,50 +2,40 @@ pipeline {
     agent any
     options { timeout(time: 45, unit: 'MINUTES') }
 
-       environment {
-        /* --- your original vars --- */
+    environment {
         HADOOP_USER_NAME   = 'hdfs'
-        GITHUB_REPO        = 'https://github.com/winnerstc/Football.git'   // fixed space
+        GITHUB_REPO        = 'https://github.com/winnerstc/Football.git'
         PYTHON_SCRIPTS_DIR = 'Incremental'
+
         HIVE_JDBC_URL      = 'jdbc:hive2://ip-172-31-8-235.eu-west-2.compute.internal:10000/joepostgres'
         HIVE_USER          = 'Consultants'
         HIVE_PASSWORD      = 'WelcomeItc@2022'
         HIVE_FILE          = 'update_fact_player_stats.sql'
-    
-        /* --- cluster paths --- */
+
         HADOOP_CONF_DIR = "/etc/hadoop/conf"
         YARN_CONF_DIR   = "/etc/hadoop/conf"
         SPARK_HOME      = "/opt/cloudera/parcels/CDH/lib/spark"
         JAVA_HOME       = "/usr/lib/jvm/java-1.8.0"
         PATH            = "/opt/cloudera/parcels/CDH/bin:${env.PATH}"
     }
-    
-        
+
     stages {
 
-        /* -------------------------------------------------
-         * 1. Clone repository + verify scripts
-         * ------------------------------------------------- */
         stage('Checkout Scripts') {
             steps {
-                
-                git branch: 'Development-Branch',
-                    url: "${GITHUB_REPO}"
+                git branch: 'Development-Branch', url: "${GITHUB_REPO}"
 
                 sh """
-                    echo "📁 Listing Python script directory"
+                    echo '📁 Listing Python Scripts:'
                     ls -la ${PYTHON_SCRIPTS_DIR}
                 """
             }
         }
-  
-        /* -------------------------------------------------
-         * 2. Run Sqoop Imports
-         * ------------------------------------------------- */
+
         stage('Run Sqoop Imports') {
             steps {
                 sh """
-                    echo "🚀 Starting Sqoop Imports"
+                    echo '🚀 Starting Sqoop Imports...'
 
                     for tbl in nfl_players nfl_rushing nfl_receiving nfl_defensive nfl_kicking nfl_passing nfl_returns
                     do
@@ -61,143 +51,66 @@ pipeline {
             }
         }
 
-        /* -------------------------------------------------
-         * 3. Run Spark ETL Scripts
-         * ------------------------------------------------- */
-        stage('Run Spark nfl players script') {
-                steps {
-                    sh '''
-                        echo "=== Using Spark Home: $SPARK_HOME ==="
-                        echo "=== Using Hadoop Conf: $HADOOP_CONF_DIR ==="
-            
-                        spark-submit \
-                            --master yarn \
-                            --deploy-mode cluster \
-                            Incremental/nfl_players_inc.py
-                    '''
+        stage('Run Spark ETL Jobs') {
+            steps {
+                script {
+                    def jobs = [
+                        "nfl_players_inc.py",
+                        "nfl_defensive_inc.py",
+                        "nfl_kicking_inc.py",
+                        "nfl_rushing_inc.py",
+                        "nfl_receiving_inc.py",
+                        "nfl_returns_inc.py",
+                        "nfl_passing_inc.py"
+                    ]
+
+                    jobs.each { job ->
+                        sh """
+                            echo "🔥 Running Spark Job: ${job}"
+
+                            spark-submit \
+                                --master yarn \
+                                --deploy-mode cluster \
+                                ${PYTHON_SCRIPTS_DIR}/${job}
+                        """
+                    }
                 }
             }
-        stage('Run Spark nfl defensive script Job') {
-                steps {
-                    sh '''
-                        echo "=== Using Spark Home: $SPARK_HOME ==="
-                        echo "=== Using Hadoop Conf: $HADOOP_CONF_DIR ==="
-            
-                        spark-submit \
-                            --master yarn \
-                            --deploy-mode cluster \
-                            Incremental/nfl_defensive_inc.py
-                    '''
-                }
+        }
+
+        stage('Run Unit Tests') {
+            steps {
+                sh """
+                    echo '🧪 Running Full Test Suite...'
+                    pytest 'unit tests/full_test_nfl_21_tests.py'
+
+                    echo '🧪 Running All 7 Transform Tests...'
+                    pytest 'unit tests/test_all_7_transforms.py'
+                """
             }
-        stage('Run Spark nfl kicking script Job') {
-                steps {
-                    sh '''
-                        echo "=== Using Spark Home: $SPARK_HOME ==="
-                        echo "=== Using Hadoop Conf: $HADOOP_CONF_DIR ==="
-            
-                        spark-submit \
-                            --master yarn \
-                            --deploy-mode cluster \
-                            Incremental/nfl_kicking_inc.py
-                    '''
-                }
-            }
-       stage('Run Spark nfl rushing script Job') {
-                steps {
-                    sh '''
-                        echo "=== Using Spark Home: $SPARK_HOME ==="
-                        echo "=== Using Hadoop Conf: $HADOOP_CONF_DIR ==="
-            
-                        spark-submit \
-                            --master yarn \
-                            --deploy-mode cluster \
-                            Incremental/nfl_rushing_inc.py
-                    '''
-                }
-            }
-        stage('Run Spark nfl receiving script Job') {
-                steps {
-                    sh '''
-                        echo "=== Using Spark Home: $SPARK_HOME ==="
-                        echo "=== Using Hadoop Conf: $HADOOP_CONF_DIR ==="
-            
-                        spark-submit \
-                            --master yarn \
-                            --deploy-mode cluster \
-                            Incremental/nfl_receiving_inc.py
-                    '''
-                }
-            }
-        stage('Run Spark nfl returns script Job') {
-                steps {
-                    sh '''
-                        echo "=== Using Spark Home: $SPARK_HOME ==="
-                        echo "=== Using Hadoop Conf: $HADOOP_CONF_DIR ==="
-            
-                        spark-submit \
-                            --master yarn \
-                            --deploy-mode cluster \
-                            Incremental/nfl_returns_inc.py
-                    '''
-                }
-            }
-        stage('Run Spark nfl passing script Job') {
-                steps {
-                    sh '''
-                        echo "=== Using Spark Home: $SPARK_HOME ==="
-                        echo "=== Using Hadoop Conf: $HADOOP_CONF_DIR ==="
-            
-                        spark-submit \
-                            --master yarn \
-                            --deploy-mode cluster \
-                            Incremental/nfl_passing_inc.py
-                    '''
-                }
-            }
-        /* -------------------------------------------------
-         * 4. Run Unit Test script
-         * ------------------------------------------------- */
-        stage('Run Full Unit Test Script') {
-                steps {
-                    sh '''
-            
-                        pytest 'unit tests/full_test_nfl_21_tests.py'
-                    '''
-                }
-            }
-        stage('Run All 7 Unit Test Script') {
-                steps {
-                    sh '''
-            
-                        pytest 'unit tests/test_all_7_transforms.py'
-                    '''
-                }
-            }
-        /* -------------------------------------------------
-         * 4. Run Hive SQL script
-         * ------------------------------------------------- */
-     stage('Run Hive SQL Script') {
-                steps {
-                    sh '''
-                    echo "🛢 Sanity-check SQL file"
+        }
+
+        stage('Run Hive SQL Script') {
+            steps {
+                sh """
+                    echo '🛢 Validating SQL file'
                     wc -l "${HIVE_FILE}"
-                    tail -10 "${HIVE_FILE}" || { echo "❌ SQL file missing/truncated"; exit 1; }
-                    
-                    echo "🛢 Running Hive SQL file ${HIVE_FILE} (Running as HDFS user via HADOOP_USER_NAME)"
-                    beeline -u "${HIVE_JDBC_URL}" \
-                        -f "${HIVE_FILE}"
-                    '''
-                }
+                    tail -10 "${HIVE_FILE}" || { echo '❌ SQL file missing'; exit 1; }
+
+                    echo '🛢 Executing Hive SQL Script...'
+                    beeline -u "${HIVE_JDBC_URL}" -f "${HIVE_FILE}"
+                """
             }
+        }
+
+    }   // <-- END OF STAGES BLOCK
 
     post {
         success {
             echo '🎉 Pipeline finished successfully!'
         }
         failure {
-            echo '❌ Pipeline failed – check the logs above.'
+            echo '❌ Pipeline failed — check logs.'
         }
     }
-}
-
+}   // <-- END OF PIPELINE
