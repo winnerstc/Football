@@ -162,12 +162,13 @@ pipeline {
                 steps {
                     sh '''
                     echo "🛢 Sanity-check SQL file"
+                    wc -l "${HIVE_FILE}"
                     tail -10 "${HIVE_FILE}" || { echo "❌ SQL file missing/truncated"; exit 1; }
             
                     echo "🛢 Running Hive SQL file ${HIVE_FILE}"
                     beeline -u "${HIVE_JDBC_URL}" \
                         -n ${HIVE_USER} -p ${HIVE_PASSWORD} \
-                        -f ${HIVE_FILE}"
+                        -f "${HIVE_FILE}"
                     '''
                 }
             }
