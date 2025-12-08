@@ -159,17 +159,18 @@ pipeline {
          * 4. Run Hive SQL script
          * ------------------------------------------------- */
         stage('Run Hive SQL Script') {
-            steps {
-                sh """
+                steps {
+                    sh '''
+                    echo "🛢 Sanity-check SQL file"
+                    tail -10 "${HIVE_FILE}" || { echo "❌ SQL file missing/truncated"; exit 1; }
+            
                     echo "🛢 Running Hive SQL file ${HIVE_FILE}"
-
                     beeline -u "${HIVE_JDBC_URL}" \
                         -n ${HIVE_USER} -p ${HIVE_PASSWORD} \
-                        -f ${HIVE_FILE}
-                """
+                        -f ${HIVE_FILE}"
+                    '''
+                }
             }
-        }
-    }
 
     post {
         success {
